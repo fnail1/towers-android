@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Towers</string>
+    <string name="title_activity_main">Башни</string>
+    <string name="error_network_error">Ошибка сети</string>
+    <string name="error_server_error">Ответ сервера: %d</string>
+    <string name="error_common_server_error">Сервер ответил отказом</string>
+    <string name="save">Сохранить</string>
+    <string name="edit_profile_title">Редактирование профиля</string>
+    <string name="error_name_too_short">Имя должно быть не менее 3 символов</string>
+    <string name="error_invalid_color">Укажите ваш цвет в формате RGB</string>
+    <string name="save_profile_success">Изменения сохранены</string>
+</resources>
