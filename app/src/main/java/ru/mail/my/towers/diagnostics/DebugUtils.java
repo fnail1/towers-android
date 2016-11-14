@@ -1,5 +1,18 @@
 package ru.mail.my.towers.diagnostics;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+
+import java.io.File;
+
+
+import ru.mail.my.towers.R;
+import ru.mail.my.towers.Utils;
+
+import static ru.mail.my.towers.TowersApp.app;
+import static ru.mail.my.towers.TowersApp.data;
+
 public class DebugUtils {
     public static void safeThrow(Throwable e) {
         e.printStackTrace();
@@ -38,5 +51,16 @@ public class DebugUtils {
         Logger.logV("TRACE", "%s.%s (%s)", className, traceElement.getMethodName(), line);
     }
 
+    public static void importFile(Context context, File outputDir) {
+        File dst = new File(outputDir, app().getString(R.string.app_name) + "_data.sqlite");
+        Utils.copyFile(new File(data().getDbPath()), dst);
+
+
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(dst));
+        sendIntent.setType("application/octet-stream");
+        context.startActivity(sendIntent);
+    }
 
 }

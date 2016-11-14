@@ -45,4 +45,8 @@ public class AppData {
             return String.valueOf(userId.hashCode());
         }
     }
+
+    public String getDbPath() {
+        return db.getPath();
+    }
 }

@@ -8,6 +8,7 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -28,6 +29,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import ru.mail.my.towers.R;
+import ru.mail.my.towers.diagnostics.DebugUtils;
+import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.service.Envelop;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.service.MapObjectsService;
@@ -43,12 +46,13 @@ import static ru.mail.my.towers.TowersApp.prefs;
 public class MainActivity extends BaseFragmentActivity implements OnMapReadyCallback, LocationAppService.LocationChangedEventHandler, GoogleMap.OnCameraMoveListener, MapObjectsService.MapObjectsLoadingCompleteEventHandler {
 
     private static final int RC_LOCATION_PERMISSION = 101;
+    private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
     public static final int MIN_ZOOM_PREFERENCE = 10;
     public static final int TOWERS_VISIBILITY_SCALE_MAX = 5000;
 
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
-    private final Location center = new Location("");
+//    private final Location center = new Location("");
     private final Point point = new Point();
     private final Envelop mapEnv = new Envelop(0, 0, 0, 0);
 
@@ -68,6 +72,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         mapObjectsView = (CirclesView) findViewById(R.id.map_objects);
+        findViewById(R.id.settings).setOnClickListener(this::onSettingsClick);
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
@@ -77,7 +82,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
     protected void onResume() {
         super.onResume();
         if (map != null) {
-            location().locationChangedEvent.add(this);
+            onReady();
         }
         checkOrRequestPermissions(RC_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -107,9 +112,13 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
                 case RC_LOCATION_PERMISSION:
                     location().startObserveLocationChanges(app());
                     break;
+                case RC_ACCESS_STORAGE_PERMISSION:
+                    DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
+                    break;
             }
         }
     }
+
 
     public boolean checkOrRequestPermissions(int reqCode, String permission) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
@@ -132,9 +141,14 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 //        map.setMinZoomPreference(MIN_ZOOM_PREFERENCE);
         onLocationChanged(location(), location().currentLocation());
         if (resumed) {
-            location().locationChangedEvent.add(this);
+            onReady();
         }
         map.setOnCameraMoveListener(this);
+    }
+
+    private void onReady() {
+        location().locationChangedEvent.add(this);
+        onCameraMove();
     }
 
     @Override
@@ -162,22 +176,35 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
     @Override
     public void onCameraMove() {
         Projection projection = map.getProjection();
-        point.set(0, 0);
+        point.set(-50, -50);
         LatLng latLng = projection.fromScreenLocation(point);
         leftTopCorner.setLongitude(latLng.longitude);
         leftTopCorner.setLatitude(latLng.latitude);
 
-        point.set(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2);
-        latLng = projection.fromScreenLocation(point);
-        center.setLongitude(latLng.longitude);
-        center.setLatitude(latLng.latitude);
-
-        point.set(mapObjectsView.getWidth(), mapObjectsView.getHeight());
+//        point.set(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2);
+//        latLng = projection.fromScreenLocation(point);
+//        center.setLongitude(latLng.longitude);
+//        center.setLatitude(latLng.latitude);
+//
+//        point.set(0, mapObjectsView.getHeight());
+//        latLng = projection.fromScreenLocation(point);
+//        Location leftBottom = new Location("");
+//        leftBottom.setLatitude(latLng.latitude);
+//        leftBottom.setLongitude(latLng.longitude);
+//
+//        point.set(mapObjectsView.getWidth(), 0);
+//        latLng = projection.fromScreenLocation(point);
+//        Location rightTop = new Location("");
+//        rightTop.setLatitude(latLng.latitude);
+//        rightTop.setLongitude(latLng.longitude);
+//
+        point.set(mapObjectsView.getWidth() + 50, mapObjectsView.getHeight() + 50);
         latLng = projection.fromScreenLocation(point);
         rightBottomCorner.setLongitude(latLng.longitude);
         rightBottomCorner.setLatitude(latLng.latitude);
 
-        showTowers = leftTopCorner.distanceTo(rightBottomCorner) <= TOWERS_VISIBILITY_SCALE_MAX;
+        float distance = leftTopCorner.distanceTo(rightBottomCorner);
+        showTowers = distance <= TOWERS_VISIBILITY_SCALE_MAX;
 
         mapEnv.set(leftTopCorner.getLatitude(),
                 leftTopCorner.getLongitude(),
@@ -193,7 +220,15 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         if (!mapEnv.intersect(args.envelop))
             return;
 
-        runOnUiThread(() -> mapObjectsView.onCameraMove(map, args.towers));
+        Tower[] towers = args.towers.toArray(new Tower[args.towers.size()]);
+        runOnUiThread(() -> mapObjectsView.onCameraMove(map, towers));
     }
+
+    private void onSettingsClick(View view) {
+        if (checkOrRequestPermissions(RC_ACCESS_STORAGE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+            DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
+
+    }
+
 
 }

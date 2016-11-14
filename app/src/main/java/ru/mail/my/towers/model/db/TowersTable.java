@@ -50,22 +50,21 @@ public class TowersTable {
         return tower._id;
     }
 
-    public void deleteDeprecated(int generation, boolean my) {
+    public int deleteDeprecated(int generation, boolean my) {
         StringBuilder sb = new StringBuilder();
-        sb.append("delete from ").append(AppData.TABLE_TOWERS);
-        sb.append("\nwhere ").append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
+
+        sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
         filterMy(sb, my);
-        db.execSQL(sb.toString());
+        return db.delete(AppData.TABLE_TOWERS,sb.toString(), null);
     }
 
-    public void deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
+    public int deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
         StringBuilder sb = new StringBuilder();
-        sb.append("delete from ").append(AppData.TABLE_TOWERS);
-        sb.append("\nwhere ").append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
+        sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
         filterMy(sb, my);
         sb.append("\n\t and ");
         filterLocation(sb, lat1, lng1, lat2, lng2);
-        db.execSQL(sb.toString());
+        return db.delete(AppData.TABLE_TOWERS,sb.toString(), null);
     }
 
     private void filterMy(StringBuilder sb, boolean my) {

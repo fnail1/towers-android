@@ -8,4 +8,14 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="MapControlsButton">
+        <item name="android:textColor">@color/colorMapItem</item>
+        <item name="android:background">#66000000</item>
+    </style>
+
+    <style name="MapControlsButton.TextAppearance">
+        <item name="android:textSize">12pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
 </resources>

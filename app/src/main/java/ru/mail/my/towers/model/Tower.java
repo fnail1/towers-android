@@ -79,4 +79,20 @@ public class Tower extends AbsRow {
     public Tower() {
 
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Tower tower = (Tower) o;
+
+        return serverId == tower.serverId;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (serverId ^ (serverId >>> 32));
+    }
 }

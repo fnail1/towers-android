@@ -43,4 +43,43 @@ public class Envelop {
         return lat1 <= lat && lat <= lat2 &&
                 lng1 <= lng && lng <= lng2;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Envelop envelop = (Envelop) o;
+
+        if (Double.compare(envelop.lat1, lat1) != 0) return false;
+        if (Double.compare(envelop.lng1, lng1) != 0) return false;
+        if (Double.compare(envelop.lat2, lat2) != 0) return false;
+        return Double.compare(envelop.lng2, lng2) == 0;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(lat1);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lng1);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lat2);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lng2);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Envelop{" +
+                "lat1=" + lat1 +
+                ", lng1=" + lng1 +
+                ", lat2=" + lat2 +
+                ", lng2=" + lng2 +
+                '}';
+    }
 }

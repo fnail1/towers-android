@@ -10,6 +10,7 @@ import ru.mail.my.towers.api.model.GsonPutProfileResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
 import ru.mail.my.towers.api.model.GsonUserInfo;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.toolkit.ThreadPool;
@@ -89,7 +90,9 @@ public class GameService {
                         }
                     }
                     prefs().setMyTowersGeneration(generation);
-                    data().towers().deleteDeprecated(generation, true);
+                    int deleted = data().towers().deleteDeprecated(generation, true);
+                    Logger.logV("selection", "" + deleted + " objects deleted");
+
                 }
             }
 //

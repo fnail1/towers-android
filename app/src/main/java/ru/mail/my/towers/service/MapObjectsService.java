@@ -3,15 +3,19 @@ package ru.mail.my.towers.service;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 
 import retrofit2.Response;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.data.CursorWrapper;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
 import ru.mail.my.towers.toolkit.ThreadPool;
+import ru.mail.my.towers.toolkit.collections.Query;
 import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.api;
@@ -29,45 +33,43 @@ public class MapObjectsService {
 
     private final ExclusiveExecutor2 executor = new ExclusiveExecutor2(3000, ThreadPool.SCHEDULER, this::loadMapObjectsSync);
 
-    private final HashMap<Envelop, Tower[]> cache = new HashMap<>();
+    private final HashMap<Envelop, HashSet<Tower>> cache = new HashMap<>();
     private Envelop envelop;
+    private volatile MapObjectsLoadingCompleteEventArgs lastDeliveredArgs;
 
     public void loadMapObjects(double lat1, double lng1, double lat2, double lng2) {
         envelop = new Envelop(lat1, lng1, lat2, lng2);
+        lookupInMemoryCache();
+
         executor.execute(false);
-        List<Tower> cached;
+    }
+
+    private void lookupInMemoryCache() {
+        HashSet<Tower> cached = new HashSet<>();
+
         synchronized (cache) {
-            cached = query(cache.entrySet())
-                    .where(e -> e.getKey().intersect(envelop))
-                    .extract(e -> query(e.getValue()))
-                    .where(envelop::inside)
-                    .toList();
+            for (Iterator<Map.Entry<Envelop, HashSet<Tower>>> iterator = cache.entrySet().iterator(); iterator.hasNext(); ) {
+                Map.Entry<Envelop, HashSet<Tower>> entry = iterator.next();
+                if (entry.getKey().intersect(envelop)) {
+                    for (Tower tower : entry.getValue()) {
+                        if (envelop.inside(tower))
+                            cached.add(tower);
+                    }
+                } else {
+                    iterator.remove();
+                }
+            }
         }
 
-
         if (!cached.isEmpty()) {
-            MapObjectsLoadingCompleteEventArgs args = new MapObjectsLoadingCompleteEventArgs(cached.toArray(new Tower[cached.size()]), envelop);
-            loadingCompleteEvent.fire(args);
+            Logger.logV("selection", "MEM: " + envelop + " -> " + cached.size());
+            lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, cached);
+            loadingCompleteEvent.fire(lastDeliveredArgs);
         }
     }
 
     private void loadMapObjectsSync() {
-
-        CursorWrapper<Tower> towersCursor = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
-        if (towersCursor.moveToFirst()) {
-            Tower[] known = new Tower[towersCursor.getCount()];
-            int idx = 0;
-
-            do {
-                known[idx++] = towersCursor.get();
-            } while (towersCursor.moveToNext());
-
-            synchronized (cache) {
-                cache.put(envelop, known);
-            }
-            MapObjectsLoadingCompleteEventArgs args = new MapObjectsLoadingCompleteEventArgs(known, envelop);
-            loadingCompleteEvent.fire(args);
-        }
+        lookupInDb();
 
         try {
             Response<GsonTowersInfoResponse> response = api().getTowersInfo((envelop.lat1 + envelop.lat2) / 2, (envelop.lng1 + envelop.lng2) / 2).execute();
@@ -78,23 +80,60 @@ public class MapObjectsService {
             if (!towersInfo.success)
                 return;
 
-            int generation = prefs().getTowersGeneration();
-            Tower[] towers = new Tower[towersInfo.towers.length];
-            int idx = 0;
+            Logger.logV("selection", "response contains " + towersInfo.towers.length + " objects");
+            int generation = prefs().getTowersGeneration() + 1;
+            HashSet<Tower> towers = new HashSet<>(towersInfo.towers.length);
+            boolean hasNewObjects = false;
             for (GsonTowerInfo tower : towersInfo.towers) {
                 Tower t = new Tower(tower);
                 data().towers().save(t, generation);
-                towers[idx++] = t;
+                towers.add(t);
+                if (!hasNewObjects && lastDeliveredArgs != null && lastDeliveredArgs.towers.contains(t))
+                    hasNewObjects = true;
             }
-            data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+            prefs().setTowersGeneration(generation);
+            int deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+            Logger.logV("selection", "" + deleted + " objects deleted");
+
             synchronized (cache) {
                 cache.put(envelop, towers);
             }
 
-            MapObjectsLoadingCompleteEventArgs args = new MapObjectsLoadingCompleteEventArgs(towers, envelop);
-            loadingCompleteEvent.fire(args);
+            if (deleted > 0) {
+                lookupInDb();
+            } else if (hasNewObjects) {
+                lookupInMemoryCache();
+            }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void lookupInDb() {
+        CursorWrapper<Tower> towersCursor = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        try {
+            if (towersCursor.moveToFirst()) {
+                HashSet<Tower> known = new HashSet<>(towersCursor.getCount());
+                boolean hasNewObjects = false;
+                do {
+                    Tower tower = towersCursor.get();
+                    if (!hasNewObjects && lastDeliveredArgs != null && lastDeliveredArgs.towers.contains(tower))
+                        hasNewObjects = true;
+                    known.add(tower);
+                } while (towersCursor.moveToNext());
+
+                synchronized (cache) {
+                    cache.put(envelop, known);
+                }
+
+                if (hasNewObjects) {
+                    Logger.logV("selection", "DB: " + envelop + " -> " + known.size());
+                    lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, known);
+                    loadingCompleteEvent.fire(lastDeliveredArgs);
+                }
+            }
+        } finally {
+            towersCursor.close();
         }
     }
 
@@ -105,9 +144,9 @@ public class MapObjectsService {
     public static class MapObjectsLoadingCompleteEventArgs {
 
         public final Envelop envelop;
-        public final Tower[] towers;
+        public final HashSet<Tower> towers;
 
-        public MapObjectsLoadingCompleteEventArgs(Tower[] towers, Envelop envelop) {
+        public MapObjectsLoadingCompleteEventArgs(Envelop envelop, HashSet<Tower> towers) {
             this.envelop = envelop;
             this.towers = towers;
         }
