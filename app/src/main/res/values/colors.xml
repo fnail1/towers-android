@@ -3,5 +3,9 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
-    <color name="colorMapItem">#ff0066ff</color>
+
+    <color name="colorMapCtrl">#ff0066ff</color>
+    <color name="colorMapCtrlBackground">#660066ff</color>
+    <color name="colorMapCtrlRipple">#FF1b48FF</color>
+
 </resources>

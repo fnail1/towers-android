@@ -78,8 +78,9 @@ public interface TowersGameApi {
     /**
      * Изменение своего профиля
      */
+    @FormUrlEncoded
     @PUT("me/profile")
-    Call<GsonPutProfileResponse> setMyProfile(String name, String hexColor);
+    Call<GsonPutProfileResponse> setMyProfile(@Field("name") String name, @Field("color") String hexColor);
 
     /**
      * Башни текущего пользователя
@@ -103,7 +104,11 @@ public interface TowersGameApi {
      * Башни. Получение списка в конкретной точке
      */
     @GET("towers")
-    Call<GsonTowersInfoResponse> getTowersInfo(@Query("lat") double lat, @Query("lng") double lng);
+    Call<GsonTowersInfoResponse> getTowersInfo(
+            @Query("bottomLat") double minLat,
+            @Query("topLng") double minLng,
+            @Query("topLat") double maxLat,
+            @Query("bottomLng") double maxLng);
 
     /**
      * Башни. Информация о башне

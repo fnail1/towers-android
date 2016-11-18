@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.Tower;
 
@@ -15,6 +16,7 @@ public class TowersTable {
     private final ThreadLocal<SQLiteStatement> insert;
     private final ThreadLocal<SQLiteStatement> selectByServerId;
     private final ThreadLocal<SQLiteStatement> update;
+    private final ThreadLocal<SQLiteStatement> selectIdByServerId;
 
 
     private final SQLiteDatabase db;
@@ -25,6 +27,7 @@ public class TowersTable {
         selectByServerId = new SQLiteStatementSimpleBuilder(db, DbUtils.buildSelectAll(Tower.class) +
                 "\nwhere " + ColumnNames.SERVER_ID + " = ?");
         update = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(Tower.class));
+        selectIdByServerId = new SQLiteStatementSimpleBuilder(db, "select " + ColumnNames.ID + " from " + AppData.TABLE_TOWERS + " where " + ColumnNames.SERVER_ID + " = ?");
     }
 
     public long save(Tower tower, int generation) {
@@ -40,13 +43,14 @@ public class TowersTable {
                 // обработка ниже
             }
 
-            SQLiteStatement selectCmd = selectByServerId.get();
+            SQLiteStatement selectCmd = selectIdByServerId.get();
             selectCmd.bindLong(1, tower.serverId);
             tower._id = selectCmd.simpleQueryForLong();
         }
         SQLiteStatement updateCmd = update.get();
         DbUtils.bindAllArgsAsStrings(updateCmd, DbUtils.buildUpdateArgs(tower));
-        updateCmd.executeUpdateDelete();
+        if (updateCmd.executeUpdateDelete() != 1)
+            Logger.logE("DB", "update failed");
         return tower._id;
     }
 
@@ -55,7 +59,7 @@ public class TowersTable {
 
         sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
         filterMy(sb, my);
-        return db.delete(AppData.TABLE_TOWERS,sb.toString(), null);
+        return db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
     }
 
     public int deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
@@ -64,7 +68,7 @@ public class TowersTable {
         filterMy(sb, my);
         sb.append("\n\t and ");
         filterLocation(sb, lat1, lng1, lat2, lng2);
-        return db.delete(AppData.TABLE_TOWERS,sb.toString(), null);
+        return db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
     }
 
     private void filterMy(StringBuilder sb, boolean my) {

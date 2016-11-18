@@ -10,6 +10,7 @@ import ru.mail.my.towers.model.db.AppData;
 public class UserInfo implements IDbSerializationHandlers {
     public static final int COLOR_ALPHA = 0x33000000;
     public static final int DEFAULT_COLOR = COLOR_ALPHA + 0xff0000;
+    public static final int INVALID_COLOR = 0x33FFFFFF;
 
     /**
      * имя
@@ -19,7 +20,7 @@ public class UserInfo implements IDbSerializationHandlers {
     /**
      * цвет кругов
      */
-    public int color;
+    public int color = INVALID_COLOR;
 
     /**
      * XP пользователя
@@ -71,7 +72,7 @@ public class UserInfo implements IDbSerializationHandlers {
 
     public void merge(GsonUserInfo gson) {
         name = gson.name;
-        color = COLOR_ALPHA + Integer.parseInt(gson.color, 16);
+        color = parseColor(gson.color);
         exp = gson.exp;
 
         if (health == null)
@@ -79,6 +80,17 @@ public class UserInfo implements IDbSerializationHandlers {
         health.current = gson.health;
 
         role = UserRole.valueOf(gson.role);
+    }
+
+    public static int parseColor(String color) {
+        if (color == null)
+            return INVALID_COLOR;
+
+        try {
+            return COLOR_ALPHA + Integer.parseInt(color, 16);
+        } catch (NumberFormatException e) {
+            return INVALID_COLOR;
+        }
     }
 
     public void merge(GsonGameInfo gson) {

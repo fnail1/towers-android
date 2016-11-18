@@ -246,7 +246,7 @@ public class DbUtils {
 
         sb.delete(sb.length() - 2, sb.length());
 
-        sb.append("where ").append(pk).append(" = ?");
+        sb.append("\n where ").append(pk).append(" = ?");
 
         return sb.toString();
     }

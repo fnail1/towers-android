@@ -6,9 +6,11 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -16,6 +18,8 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 
 import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnEditorAction;
 import retrofit2.Response;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
@@ -34,12 +38,17 @@ public class EditProfileActivity extends AppCompatActivity implements GameServic
 
     @BindView(R.id.color)
     EditText color;
+
+    @BindView(R.id.color_sample)
+    View colorSample;
+
     private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_profile);
+        ButterKnife.bind(this);
         setTitle(getString(R.string.edit_profile_title));
         color.addTextChangedListener(new MyColorFormatter());
     }
@@ -83,7 +92,7 @@ public class EditProfileActivity extends AppCompatActivity implements GameServic
 
         int newColor;
         try {
-            newColor = Integer.parseInt(color.getText().toString());
+            newColor = Integer.parseInt(color.getText().toString(), 16);
         } catch (NumberFormatException e) {
             Toast.makeText(this, R.string.error_invalid_color, Toast.LENGTH_LONG).show();
             return;
@@ -97,8 +106,10 @@ public class EditProfileActivity extends AppCompatActivity implements GameServic
 
     @Override
     public void onMyProfileChanged(UserInfo args) {
-        name.setText(args.name);
-        color.setText(Integer.toString(args.color, 16));
+        runOnUiThread(() -> {
+            name.setText(args.name);
+            color.setText(Integer.toString(args.color, 16));
+        });
     }
 
 
@@ -143,7 +154,19 @@ public class EditProfileActivity extends AppCompatActivity implements GameServic
 
         @Override
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            int color = UserInfo.parseColor(EditProfileActivity.this.color.getText().toString()) & 0xffffff;
 
+//            String hexColor = Integer.toHexString(color);
+//            if (hexColor.length() > 6)
+//                hexColor = hexColor.substring(0, 6);
+//            else {
+//                StringBuilder sb = new StringBuilder("000000");
+//                sb.replace(6 - hexColor.length(), 6, hexColor);
+//                hexColor = sb.toString();
+//            }
+//            Log.d("EditProfileActivity", hexColor);
+
+            colorSample.setBackgroundColor(0xff000000 | color);
         }
 
         @Override

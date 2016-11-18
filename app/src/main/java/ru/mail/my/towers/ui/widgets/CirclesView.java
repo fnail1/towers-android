@@ -143,7 +143,7 @@ public class CirclesView extends View {
         for (int i = 0; i < xs.length; i++) {
             icon.setBounds(xs[i] - iconWidth / 2, ys[i] - iconHeight / 2, xs[i] + iconWidth / 2, ys[i] + iconHeight / 2);
             icon.setTint(cs[i]);
-            icon.setTintMode(PorterDuff.Mode.ADD);
+            icon.setTintMode(PorterDuff.Mode.XOR);
             icon.draw(canvas);
         }
 

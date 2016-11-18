@@ -14,6 +14,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Toast;
 
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -28,9 +29,13 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.model.Tower;
+import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.Envelop;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.service.MapObjectsService;
@@ -42,22 +47,26 @@ import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.location;
 import static ru.mail.my.towers.TowersApp.mapObjects;
 import static ru.mail.my.towers.TowersApp.prefs;
+import static ru.mail.my.towers.diagnostics.Logger.trace;
 
 public class MainActivity extends BaseFragmentActivity implements OnMapReadyCallback, LocationAppService.LocationChangedEventHandler, GoogleMap.OnCameraMoveListener, MapObjectsService.MapObjectsLoadingCompleteEventHandler {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
     public static final int MIN_ZOOM_PREFERENCE = 10;
+    public static final int ZOOM_SHOW_ME = 15;
     public static final int TOWERS_VISIBILITY_SCALE_MAX = 5000;
 
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
-//    private final Location center = new Location("");
+    //    private final Location center = new Location("");
     private final Point point = new Point();
     private final Envelop mapEnv = new Envelop(0, 0, 0, 0);
 
     private GoogleMap map;
-    private CirclesView mapObjectsView;
+
+    @BindView(R.id.map_objects)
+    protected CirclesView mapObjectsView;
 
     private Marker currentLocationMarker;
     private boolean showTowers;
@@ -68,13 +77,11 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+
+        ButterKnife.bind(this);
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        mapObjectsView = (CirclesView) findViewById(R.id.map_objects);
-        findViewById(R.id.settings).setOnClickListener(this::onSettingsClick);
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
@@ -89,7 +96,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 
         if (prefs().getAccessToken() == null) {
             startActivity(new Intent(this, LoginActivity.class));
-        } else if (TextUtils.isEmpty(game().me.name)) {
+        } else if (TextUtils.isEmpty(game().me.name) || game().me.color == UserInfo.INVALID_COLOR) {
             startActivity(new Intent(this, EditProfileActivity.class));
         }
         mapObjects().loadingCompleteEvent.add(this);
@@ -137,22 +144,25 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        trace();
         map = googleMap;
 //        map.setMinZoomPreference(MIN_ZOOM_PREFERENCE);
-        onLocationChanged(location(), location().currentLocation());
+        map.setOnCameraMoveListener(this);
         if (resumed) {
             onReady();
         }
-        map.setOnCameraMoveListener(this);
     }
 
     private void onReady() {
+        trace();
         location().locationChangedEvent.add(this);
-        onCameraMove();
+//        onCameraMove();
+//        onLocationChanged(location(), location().currentLocation());
     }
 
     @Override
     public void onLocationChanged(LocationAppService sender, Location args) {
+        trace();
         if (args == null) {
             if (currentLocationMarker != null) {
                 currentLocationMarker.remove();
@@ -169,12 +179,14 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 
         currentLocationMarker.setPosition(pos);
         if (appState().displayCurrentLocation()) {
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, MIN_ZOOM_PREFERENCE));
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, ZOOM_SHOW_ME));
+            onCameraMove();
         }
     }
 
     @Override
     public void onCameraMove() {
+        trace();
         Projection projection = map.getProjection();
         point.set(-50, -50);
         LatLng latLng = projection.fromScreenLocation(point);
@@ -217,6 +229,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 
     @Override
     public void onMapObjectsLoadingComplete(MapObjectsService.MapObjectsLoadingCompleteEventArgs args) {
+        trace();
         if (!mapEnv.intersect(args.envelop))
             return;
 
@@ -224,11 +237,22 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         runOnUiThread(() -> mapObjectsView.onCameraMove(map, towers));
     }
 
-    private void onSettingsClick(View view) {
+    @OnClick(R.id.settings)
+    protected void onSettingsClick(View view) {
         if (checkOrRequestPermissions(RC_ACCESS_STORAGE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE))
             DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
-
     }
 
+    @OnClick(R.id.current_location)
+    protected void onCurrentLocationClick() {
+        Location location = location().currentLocation();
+        if (location == null) {
+            Toast.makeText(this, "Местоположение не определено", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, ZOOM_SHOW_ME));
+        onCameraMove();
+    }
 
 }

@@ -15,13 +15,11 @@ import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
 import ru.mail.my.towers.toolkit.ThreadPool;
-import ru.mail.my.towers.toolkit.collections.Query;
 import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.data;
 import static ru.mail.my.towers.TowersApp.prefs;
-import static ru.mail.my.towers.toolkit.collections.Query.query;
 
 public class MapObjectsService {
     public final ObservableEvent<MapObjectsLoadingCompleteEventHandler, MapObjectsService, MapObjectsLoadingCompleteEventArgs> loadingCompleteEvent = new ObservableEvent<MapObjectsLoadingCompleteEventHandler, MapObjectsService, MapObjectsLoadingCompleteEventArgs>(this) {
@@ -45,6 +43,7 @@ public class MapObjectsService {
     }
 
     private void lookupInMemoryCache() {
+        Logger.logV("selection", ">");
         HashSet<Tower> cached = new HashSet<>();
 
         synchronized (cache) {
@@ -52,8 +51,10 @@ public class MapObjectsService {
                 Map.Entry<Envelop, HashSet<Tower>> entry = iterator.next();
                 if (entry.getKey().intersect(envelop)) {
                     for (Tower tower : entry.getValue()) {
-                        if (envelop.inside(tower))
+                        if (envelop.inside(tower)) {
                             cached.add(tower);
+                            Logger.logV("selection", "FROM MEM " + tower.serverId);
+                        }
                     }
                 } else {
                     iterator.remove();
@@ -61,18 +62,20 @@ public class MapObjectsService {
             }
         }
 
-        if (!cached.isEmpty()) {
-            Logger.logV("selection", "MEM: " + envelop + " -> " + cached.size());
-            lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, cached);
-            loadingCompleteEvent.fire(lastDeliveredArgs);
-        }
+
+        Logger.logV("selection", "MEM: " + envelop + " -> " + cached.size());
+        lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, cached);
+        loadingCompleteEvent.fire(lastDeliveredArgs);
     }
 
     private void loadMapObjectsSync() {
         lookupInDb();
 
+        int generation = prefs().getTowersGeneration() + 1;
+        boolean hasNewObjects = false;
+
         try {
-            Response<GsonTowersInfoResponse> response = api().getTowersInfo((envelop.lat1 + envelop.lat2) / 2, (envelop.lng1 + envelop.lng2) / 2).execute();
+            Response<GsonTowersInfoResponse> response = api().getTowersInfo(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2).execute();
             if (response.code() != HttpURLConnection.HTTP_OK)
                 return;
 
@@ -80,11 +83,11 @@ public class MapObjectsService {
             if (!towersInfo.success)
                 return;
 
+            Logger.logV("selection", ">");
             Logger.logV("selection", "response contains " + towersInfo.towers.length + " objects");
-            int generation = prefs().getTowersGeneration() + 1;
             HashSet<Tower> towers = new HashSet<>(towersInfo.towers.length);
-            boolean hasNewObjects = false;
             for (GsonTowerInfo tower : towersInfo.towers) {
+                Logger.logV("selection", "FROM SERVER " + tower.id);
                 Tower t = new Tower(tower);
                 data().towers().save(t, generation);
                 towers.add(t);
@@ -92,24 +95,40 @@ public class MapObjectsService {
                     hasNewObjects = true;
             }
             prefs().setTowersGeneration(generation);
-            int deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
-            Logger.logV("selection", "" + deleted + " objects deleted");
-
             synchronized (cache) {
                 cache.put(envelop, towers);
-            }
-
-            if (deleted > 0) {
-                lookupInDb();
-            } else if (hasNewObjects) {
-                lookupInMemoryCache();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        Logger.logV("selection", ">");
+        CursorWrapper<Tower> select = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        try {
+            if (select.moveToFirst()) {
+                do {
+                    Tower tower = select.get();
+                    if (!tower.my) {
+                        Logger.logV("selection", "DELETE " + tower.serverId);
+                    }
+                } while (select.moveToNext());
+            }
+        } finally {
+            select.close();
+        }
+        int deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        Logger.logV("selection", "" + deleted + " objects deleted");
+
+
+        if (deleted > 0) {
+            lookupInDb();
+        } else if (hasNewObjects) {
+            lookupInMemoryCache();
+        }
     }
 
     private void lookupInDb() {
+        Logger.logV("selection", ">");
         CursorWrapper<Tower> towersCursor = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
         try {
             if (towersCursor.moveToFirst()) {
@@ -117,9 +136,10 @@ public class MapObjectsService {
                 boolean hasNewObjects = false;
                 do {
                     Tower tower = towersCursor.get();
-                    if (!hasNewObjects && lastDeliveredArgs != null && lastDeliveredArgs.towers.contains(tower))
+                    if (!hasNewObjects && (lastDeliveredArgs == null || !lastDeliveredArgs.towers.contains(tower)))
                         hasNewObjects = true;
                     known.add(tower);
+                    Logger.logV("selection", "FROM DB " + tower.serverId);
                 } while (towersCursor.moveToNext());
 
                 synchronized (cache) {

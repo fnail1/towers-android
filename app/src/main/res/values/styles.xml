@@ -9,8 +9,8 @@
     </style>
 
     <style name="MapControlsButton">
-        <item name="android:textColor">@color/colorMapItem</item>
-        <item name="android:background">#66000000</item>
+        <item name="android:textColor">@color/colorMapCtrl</item>
+        <item name="android:background">@drawable/bg_ripple_map_ctrl</item>
     </style>
 
     <style name="MapControlsButton.TextAppearance">

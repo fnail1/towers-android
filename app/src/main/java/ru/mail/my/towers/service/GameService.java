@@ -44,7 +44,12 @@ public class GameService {
     public void updateMyProfile(String newName, int newColor, UpdateMyProfileCallback callback) {
         ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
             try {
-                Response<GsonPutProfileResponse> response = api().setMyProfile(newName, Integer.toHexString(newColor)).execute();
+                StringBuilder sb = new StringBuilder("000000");
+                String hexColor = Integer.toHexString(newColor).substring(0, 6);
+                sb.replace(6 - hexColor.length(), 6, hexColor);
+                hexColor = sb.toString();
+
+                Response<GsonPutProfileResponse> response = api().setMyProfile(newName, hexColor).execute();
                 if (HttpURLConnection.HTTP_OK != response.code()) {
                     callback.onUpdateMyProfileServerError(response.code());
                     return;

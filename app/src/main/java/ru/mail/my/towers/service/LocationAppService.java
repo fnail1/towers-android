@@ -69,6 +69,7 @@ public class LocationAppService implements LocationListener, AppStateService.App
         subscribed = true;
 
         systemService.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 10, this);
+        systemService.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 100, this);
         Location location = currentLocation();
         Logger.logLocation(location);
     }
@@ -94,7 +95,7 @@ public class LocationAppService implements LocationListener, AppStateService.App
         }
         Location location = systemService.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         if (location != null && Math.abs(location.getTime() - System.currentTimeMillis()) > 5 * 60 * 1000) {
-            return null;
+            location = systemService.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         }
         return location;
     }

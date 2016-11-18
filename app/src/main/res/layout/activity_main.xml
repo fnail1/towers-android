@@ -33,7 +33,21 @@
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
             android:text="settings"
+            android:padding="@dimen/padding"
             android:textAppearance="@style/MapControlsButton.TextAppearance"
+            />
+
+        <ImageButton
+            android:id="@+id/current_location"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:src="@android:drawable/ic_menu_compass"
+            android:tint="@color/colorMapCtrl"
+            android:padding="@dimen/padding"
+            style="@style/MapControlsButton"
             />
     </RelativeLayout>
 </FrameLayout>
