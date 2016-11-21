@@ -1,30 +1,39 @@
 package ru.mail.my.towers.api.model;
 
-import ru.mail.my.towers.model.UserRole;
-
 public class GsonUserInfo {
     /**
-     * имя
+     * занимаемая площадь, м²
      */
-    public String name;
+    public double area;
 
     /**
-     * цвет кругов
+     * текущий уровень, начиная с 0
      */
-    public String color;
+    public int currentLevel;
 
     /**
-     * XP пользователя
+     * текущий XP
      */
     public int exp;
 
     /**
-     * HP пользователя
+     * требуемый XP для следующего уровня
      */
-    public int health;
+    public int nextExp;
 
     /**
-     * текущая роль
+     * плата золотом для создания башни
      */
-    public String role;
+    public int createCost;
+
+    /**
+     * информация о здоровье
+     */
+    public GsonHealthInfo health;
+
+    /**
+     * информация о золоте
+     */
+    public GsonGoldInfo gold;
+
 }

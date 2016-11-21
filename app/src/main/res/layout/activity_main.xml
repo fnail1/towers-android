@@ -1,4 +1,5 @@
 <FrameLayout
+    android:id="@+id/root"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -21,6 +22,7 @@
         android:visibility="visible"/>
 
     <RelativeLayout
+        android:id="@+id/map_controls"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="visible">
@@ -32,22 +34,36 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
+            android:padding="8dp"
             android:text="settings"
-            android:padding="@dimen/padding"
             android:textAppearance="@style/MapControlsButton.TextAppearance"
             />
 
         <ImageButton
             android:id="@+id/current_location"
+            style="@style/MapControlsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:padding="8dp"
             android:src="@android:drawable/ic_menu_compass"
             android:tint="@color/colorMapCtrl"
-            android:padding="@dimen/padding"
-            style="@style/MapControlsButton"
             />
+
+        <ImageButton
+            android:id="@+id/build_tower"
+            style="@style/MapControlsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/current_location"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_add"
+            android:tint="@color/colorMapCtrl"
+            />
+
     </RelativeLayout>
 </FrameLayout>

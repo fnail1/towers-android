@@ -85,7 +85,7 @@ public interface TowersGameApi {
     /**
      * Башни текущего пользователя
      */
-    @GET("/me/towers")
+    @GET("me/towers")
     Call<GsonMyTowersResponse> getMyTowers();
 
     /**
@@ -97,7 +97,7 @@ public interface TowersGameApi {
     /**
      * Уведомления текущего пользователя
      */
-    @GET("/me/notifications")
+    @GET("me/notifications")
     Call<GsonNotificationsResponse> getNotifications();
 
     /**

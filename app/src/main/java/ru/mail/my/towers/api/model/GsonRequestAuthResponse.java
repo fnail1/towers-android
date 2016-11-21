@@ -1,4 +1,4 @@
 package ru.mail.my.towers.api.model;
 
-public class GsonRequestAuthResponse extends GsonSimpleSuccessResponse {
+public class GsonRequestAuthResponse extends GsonBaseResponse {
 }

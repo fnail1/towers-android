@@ -5,12 +5,12 @@ public class GsonGoldInfo {
     /**
      * текущее золото
      */
-    public int current;
+    public double current;
 
     /**
      * количество добываемого золота
      */
-    public int gain;
+    public double gain;
 
     /**
      * частота пополнения золота (секунды)

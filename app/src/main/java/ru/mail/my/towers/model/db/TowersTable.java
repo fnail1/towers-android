@@ -110,4 +110,8 @@ public class TowersTable {
             }
         };
     }
+
+    public int countOfMy() {
+        return DbUtils.count(db, "select count (*) from " + AppData.TABLE_TOWERS + " where " + ColumnNames.IS_MY + " = 1", (String[]) null);
+    }
 }

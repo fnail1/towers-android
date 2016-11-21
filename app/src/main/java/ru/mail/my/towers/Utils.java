@@ -4,19 +4,24 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.ColorRes;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Response;
 import ru.mail.my.towers.diagnostics.Logger;
@@ -112,7 +117,6 @@ public final class Utils {
 
         return sb.length() >= 5 ? sb.toString() : null;
     }
-
 
 
     public static String bundleToString(Bundle bundle) {
@@ -231,5 +235,47 @@ public final class Utils {
         else if (alpha > 1F)
             alpha = 1F;
         return alpha;
+    }
+
+    public static String formatLocation(LatLng location) {
+        return formatLocation(location.latitude, location.longitude);
+
+    }
+
+    public static String formatLocation(Location location) {
+        return formatLocation(location.getLatitude(), location.getLongitude());
+    }
+
+    @NonNull
+    private static String formatLocation(double latitude, double longitude) {
+        StringBuilder sb = new StringBuilder();
+        formatCoord(latitude, sb);
+        sb.append("; ");
+        formatCoord(longitude, sb);
+        return sb.toString();
+    }
+
+    public static String formatCoord(double coord) {
+        StringBuilder sb = new StringBuilder();
+        formatCoord(coord, sb);
+        return sb.toString();
+    }
+
+    private static void formatCoord(double coord, StringBuilder sb) {
+        int degree = (int) coord;
+        coord -= degree;
+        coord *= 60;
+        int minutes = (int) coord;
+        coord -= minutes;
+        coord *= 60;
+        int seconds = (int) coord;
+
+        sb.append(degree).append("° ")
+                .append(minutes).append("' ")
+                .append(seconds).append("\" ");
+    }
+
+    public static boolean isMockProvider(Location args) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 && args.isFromMockProvider();
     }
 }

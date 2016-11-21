@@ -5,7 +5,9 @@
     <color name="colorAccent">#FF4081</color>
 
     <color name="colorMapCtrl">#ff0066ff</color>
-    <color name="colorMapCtrlBackground">#660066ff</color>
+    <color name="colorMapCtrlBackground">#330066ff</color>
     <color name="colorMapCtrlRipple">#FF1b48FF</color>
+    <color name="colorMapPopupCtrl">#ff5599ff</color>
+    <color name="colorMapPopupCtrlEdit">#ffaaddff</color>
 
 </resources>

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="false"
+                tools:context=".ui.MainActivity">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_popup_create_tower"/>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical">
+
+
+        <TextView
+            android:id="@+id/caption"
+            style="@style/MapControlPopupCaption.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:text="Построить башню"
+            />
+
+        <TextView
+            android:id="@+id/name_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="название"/>
+
+        <EditText
+            android:id="@+id/name"
+            style="@style/MapControlPopupField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:text="Минас Моргул"/>
+
+        <TextView
+            android:id="@+id/location_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="координаты"/>
+
+        <TextView
+            android:id="@+id/location"
+            style="@style/MapControlPopupField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            tools:text="12° 34' 35''; 54° 32' 10'' "/>
+
+        <TextView
+            android:id="@+id/cost_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/name"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="стоимость"/>
+
+        <TextView
+            android:id="@+id/cost"
+            style="@style/MapControlPopupField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:text="10"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/positive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:background="@drawable/bg_ripple_popup_ctrl"
+        android:padding="24dp"
+        android:text="построить"
+        android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+        />
+
+    <TextView
+        android:id="@+id/negative"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:background="@drawable/bg_ripple_popup_ctrl"
+        android:padding="24dp"
+        android:text="отмена"
+        android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+        />
+
+
+</RelativeLayout>

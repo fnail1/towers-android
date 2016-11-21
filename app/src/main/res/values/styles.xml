@@ -14,7 +14,47 @@
     </style>
 
     <style name="MapControlsButton.TextAppearance">
-        <item name="android:textSize">12pt</item>
+        <item name="android:textSize">8pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="MapControlPopupCaption">
+        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+    </style>
+
+    <style name="MapControlPopupCaption.TextAppearance">
+        <item name="android:textSize">10pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="MapControlPopupFieldHeader">
+        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+    </style>
+
+    <style name="MapControlPopupFieldHeader.TextAppearance">
+        <item name="android:textSize">6pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="MapControlPopupField">
+        <item name="android:textColor">@color/colorMapPopupCtrlEdit</item>
+    </style>
+
+    <style name="MapControlPopupField.TextAppearance">
+        <item name="android:textSize">10pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="MapControlPopupButton">
+        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+    </style>
+
+    <style name="MapControlPopupButton.TextAppearance">
+        <item name="android:textSize">8pt</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textStyle">normal</item>
     </style>

@@ -1,6 +1,7 @@
 package ru.mail.my.towers.api.model;
 
-public class GsonSimpleSuccessResponse {
+public class GsonBaseResponse {
     public boolean success;
     public String debug;
+    public GsonError error;
 }

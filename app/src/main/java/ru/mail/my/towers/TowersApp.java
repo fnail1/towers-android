@@ -73,6 +73,7 @@ public class TowersApp extends Application {
     public void onLogin(String number, String token) {
         preferences.onLogin(this, number, token);
         gameService = new GameService(preferences);
+        data = new AppData(this, preferences.getUserId());
     }
 
     public void onLogout() {

@@ -1,7 +1,7 @@
 package ru.mail.my.towers.model;
 
-import ru.mail.my.towers.api.model.GsonGameInfo;
 import ru.mail.my.towers.api.model.GsonUserInfo;
+import ru.mail.my.towers.api.model.GsonUserProfile;
 import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.data.IDbSerializationHandlers;
 import ru.mail.my.towers.model.db.AppData;
@@ -70,16 +70,15 @@ public class UserInfo implements IDbSerializationHandlers {
     private int _health_regeneration;
     private int _health_max;
 
-    public void merge(GsonUserInfo gson) {
-        name = gson.name;
+    public void merge(GsonUserProfile gson) {
+        if (gson.name != null) {
+            name = gson.name;
+        }
         color = parseColor(gson.color);
-        exp = gson.exp;
 
-        if (health == null)
-            health = new UserHealthInfo();
-        health.current = gson.health;
-
-        role = UserRole.valueOf(gson.role);
+        if (gson.role != null) {
+            role = UserRole.valueOf(gson.role);
+        }
     }
 
     public static int parseColor(String color) {
@@ -93,7 +92,7 @@ public class UserInfo implements IDbSerializationHandlers {
         }
     }
 
-    public void merge(GsonGameInfo gson) {
+    public void merge(GsonUserInfo gson) {
         area = gson.area;
         createCost = gson.createCost;
         currentLevel = gson.currentLevel;
@@ -128,4 +127,5 @@ public class UserInfo implements IDbSerializationHandlers {
         health.regeneration = _health_regeneration;
         health.max = _health_max;
     }
+
 }

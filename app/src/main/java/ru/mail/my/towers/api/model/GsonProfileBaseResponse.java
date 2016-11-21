@@ -1,6 +1,6 @@
 package ru.mail.my.towers.api.model;
 
-public class GsonProfileBaseResponse extends GsonSimpleSuccessResponse {
-    public GsonUserInfo profile;
+public class GsonProfileBaseResponse extends GsonBaseResponse {
+    public GsonUserProfile profile;
 
 }

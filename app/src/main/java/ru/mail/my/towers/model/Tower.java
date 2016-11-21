@@ -6,6 +6,8 @@ import ru.mail.my.towers.data.DbForeignKey;
 import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.model.db.AppData;
 
+import static ru.mail.my.towers.TowersApp.game;
+
 @DbTable(name = AppData.TABLE_TOWERS)
 public class Tower extends AbsRow {
     @DbColumn(name = ColumnNames.SERVER_ID, unique = true)
@@ -68,7 +70,7 @@ public class Tower extends AbsRow {
         this.level = towerInfo.level;
         this.health = towerInfo.health;
         this.maxHealth = towerInfo.maxHealth;
-        this.color = Integer.parseInt(towerInfo.color, 16);
+        this.color = Integer.parseInt(towerInfo.user.color, 16);
         this.goldGain = towerInfo.goldGain;
         this.updateCost = towerInfo.updateCost;
         this.repairCost = towerInfo.repairCost;

@@ -23,11 +23,6 @@ public class GsonTowerInfo {
     public int maxHealth;
 
     /**
-     * цвет круга
-     */
-    public String color;
-
-    /**
      * сколько приносит золота
      */
     public int goldGain;
@@ -46,4 +41,6 @@ public class GsonTowerInfo {
      * моя башня или нет
      */
     public boolean my;
+
+    public GsonUserProfile user;
 }

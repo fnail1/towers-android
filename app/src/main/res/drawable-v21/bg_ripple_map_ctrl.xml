@@ -9,17 +9,14 @@
     </item>
 
     <item>
-        <shape android:shape="rectangle">
+        <shape android:shape="oval">
             <corners android:radius="20dp"/>
-            <!--<solid android:color="#ffff0000"/>-->
             <gradient
-                android:startColor="#00000000"
-                android:centerColor="@color/colorMapCtrlBackground"
-                android:endColor="#00000000"
-                android:angle="90"
-                android:type="linear"
+                android:startColor="#7fffffff"
+                android:centerColor="#ffffff"
+                android:endColor="#3fffffff"
+                android:type="radial"
                 android:gradientRadius="50dp"/>
-
 
         </shape>
     </item>

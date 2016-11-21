@@ -19,9 +19,9 @@ public class UserGoldInfo {
      */
     public int frequency;
 
-    public UserGoldInfo(GsonGoldInfo gson){
-        current = gson.current;
-        gain = gson.gain;
+    public UserGoldInfo(GsonGoldInfo gson) {
+        current = (int) gson.current;
+        gain = (int) gson.gain;
         frequency = gson.frequency;
     }
 
