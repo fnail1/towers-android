@@ -94,7 +94,7 @@ public class LocationAppService implements LocationListener, AppStateService.App
             return location;
         }
         Location location = systemService.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        if (location != null && Math.abs(location.getTime() - System.currentTimeMillis()) > 5 * 60 * 1000) {
+        if (location == null || Math.abs(location.getTime() - System.currentTimeMillis()) > 5 * 60 * 1000) {
             location = systemService.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         }
         return location;

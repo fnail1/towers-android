@@ -62,7 +62,7 @@ public class TowersApp extends Application {
         appStateService = new AppStateService(this, preferences);
         locationService = new LocationAppService(this, appStateService);
         api = TowersGameApi.Builder.createInstance(TowersGameApi.BASE_URL);
-        gameService = new GameService(preferences);
+        gameService = new GameService(preferences, data);
         mapObjectsService = new MapObjectsService();
 
         instance = this;
@@ -72,8 +72,8 @@ public class TowersApp extends Application {
 
     public void onLogin(String number, String token) {
         preferences.onLogin(this, number, token);
-        gameService = new GameService(preferences);
         data = new AppData(this, preferences.getUserId());
+        gameService = new GameService(preferences, data);
     }
 
     public void onLogout() {

@@ -55,7 +55,7 @@ public class DbUtils {
         Query<Field> query = query(t.getDeclaredFields());
         while ((t = t.getSuperclass()) != Object.class)
             query = query.concat(t.getDeclaredFields());
-        return query.where(DbUtils::checkTransient).select(f->{
+        return query.where(DbUtils::checkTransient).select(f -> {
             f.setAccessible(true);
             return f;
         });
@@ -251,6 +251,29 @@ public class DbUtils {
         return sb.toString();
     }
 
+    @NonNull
+    public static String buildUpdate(@NonNull Class<?> rawType, String keyColumn) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("update ");
+        sb.append(getTableName(rawType));
+        sb.append(" set ");
+        String pk = null;
+
+        for (Field field : iterateFields(rawType)) {
+            DbColumn column = field.getAnnotation(DbColumn.class);
+            if (column != null && (column.primaryKey() || column.equals(keyColumn)))
+                continue;
+            sb.append(getColumnName(field, column));
+            sb.append(" = ?, ");
+        }
+
+        sb.delete(sb.length() - 2, sb.length());
+
+        sb.append("\n where ").append(keyColumn).append(" = ?");
+
+        return sb.toString();
+    }
+
 
     @NonNull
     public static String[] buildUpdateArgs(@NonNull Object raw) {
@@ -282,6 +305,41 @@ public class DbUtils {
                 values.add(value);
             }
             values.add(pk);
+            return values.toArray(new String[values.size()]);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @NonNull
+    public static String[] buildUpdateArgs(@NonNull Object raw, String keyColumn, String key) {
+        if (raw instanceof IDbSerializationHandlers)
+            ((IDbSerializationHandlers) raw).onBeforeSerialization();
+
+        try {
+            ArrayList<String> values = new ArrayList<>();
+            String pk = null;
+            for (Field field : iterateFields(raw.getClass())) {
+                DbColumn column = field.getAnnotation(DbColumn.class);
+                Object v = field.get(raw);
+                if (column != null && (column.primaryKey() || column.equals(keyColumn)))
+                    continue;
+
+                String value;
+                if (v == null) {
+                    value = null;
+                } else if (field.getType().isEnum()) {
+                    value = String.valueOf(((Enum<?>) v).ordinal());
+                } else if (field.getType() == Flags32.class) {
+                    value = String.valueOf(((Flags32) v).getValue());
+                } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
+                    value = ((boolean) v) ? "1" : "0";
+                } else {
+                    value = String.valueOf(v);
+                }
+                values.add(value);
+            }
+            values.add(key);
             return values.toArray(new String[values.size()]);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);

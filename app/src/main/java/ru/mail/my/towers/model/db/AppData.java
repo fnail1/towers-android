@@ -21,15 +21,21 @@ public class AppData {
 
     private final SQLiteDatabase db;
     private final TowersTable towers;
+    private final UsersTable users;
 
     public AppData(Context context, String userId) {
         SQLiteOpenHelper helper = new AppDataSQLiteOpenHelper(context, normalizeDbName(userId));
         db = helper.getWritableDatabase();
         towers = new TowersTable(db);
+        users = new UsersTable(db);
     }
 
     public TowersTable towers() {
         return towers;
+    }
+
+    public UsersTable users() {
+        return users;
     }
 
     public static String normalizeDbName(String userId) {

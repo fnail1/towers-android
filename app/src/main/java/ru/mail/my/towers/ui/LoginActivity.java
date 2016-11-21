@@ -128,9 +128,10 @@ public class LoginActivity extends AppCompatActivity {
                 Response<GsonGetProfileResponse> myProfile = api().getMyProfile().execute();
                 app().onLogin(number, body.loginData.token);
                 game().updateMyProfile(myProfile.body().profile);
+            } else {
+                app().onLogin(number, body.loginData.token);
             }
 
-            app().onLogin(number, body.loginData.token);
 
             runOnUiThread(() -> {
                 startActivity(new Intent(this, MainActivity.class));

@@ -1,4 +1,4 @@
-package ru.mail.my.towers;
+package ru.mail.my.towers.utils;
 
 import android.app.Activity;
 import android.content.Context;

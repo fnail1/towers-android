@@ -11,7 +11,8 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import ru.mail.my.towers.R;
-import ru.mail.my.towers.Utils;
+import ru.mail.my.towers.ui.widgets.HighlightTargetDrawable;
+import ru.mail.my.towers.utils.Utils;
 import ru.mail.my.towers.service.LocationAppService;
 
 import static ru.mail.my.towers.TowersApp.location;
@@ -21,6 +22,7 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
     private final ViewGroup parent;
     private final IMapActivity activity;
     private final View popupView;
+    private final HighlightTargetDrawable background;
 
     @BindView(R.id.caption)
     TextView caption;
@@ -56,7 +58,9 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
         this.parent = parent;
         this.activity = activity;
         popupView = LayoutInflater.from(this.parent.getContext()).inflate(R.layout.popup_create_tower, null);
+        background = new HighlightTargetDrawable();
         ButterKnife.bind(this, popupView);
+        popupView.setBackground(background);
     }
 
     @Override
@@ -124,6 +128,10 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
         }
         targetLocation = args;
         this.location.setText(Utils.formatLocation(args));
+    }
+
+    public void setPOI(int x, int y, float radius) {
+        background.setWindow(x, y, radius);
     }
 
     public void setCost(int cost) {

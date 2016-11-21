@@ -20,6 +20,10 @@ public class UserGoldInfo {
     public int frequency;
 
     public UserGoldInfo(GsonGoldInfo gson) {
+        merge(gson);
+    }
+
+    public void merge(GsonGoldInfo gson) {
         current = (int) gson.current;
         gain = (int) gson.gain;
         frequency = gson.frequency;

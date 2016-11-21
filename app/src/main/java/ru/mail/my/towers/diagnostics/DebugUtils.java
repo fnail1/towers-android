@@ -8,7 +8,7 @@ import java.io.File;
 
 
 import ru.mail.my.towers.R;
-import ru.mail.my.towers.Utils;
+import ru.mail.my.towers.utils.Utils;
 
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.data;

@@ -4,12 +4,14 @@ import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.data.DbColumn;
 import ru.mail.my.towers.data.DbForeignKey;
 import ru.mail.my.towers.data.DbTable;
+import ru.mail.my.towers.data.IDbSerializationHandlers;
 import ru.mail.my.towers.model.db.AppData;
 
 import static ru.mail.my.towers.TowersApp.game;
 
 @DbTable(name = AppData.TABLE_TOWERS)
-public class Tower extends AbsRow {
+public class Tower extends AbsRow implements IDbSerializationHandlers{
+
     @DbColumn(name = ColumnNames.SERVER_ID, unique = true)
     public long serverId;
 
@@ -61,7 +63,9 @@ public class Tower extends AbsRow {
      */
     public boolean my;
 
-    public Tower(GsonTowerInfo towerInfo) {
+    public long owner;
+
+    public Tower(GsonTowerInfo towerInfo, UserInfo owner) {
         this.serverId = towerInfo.id;
         this.lat = towerInfo.lat;
         this.lng = towerInfo.lng;
@@ -70,11 +74,12 @@ public class Tower extends AbsRow {
         this.level = towerInfo.level;
         this.health = towerInfo.health;
         this.maxHealth = towerInfo.maxHealth;
-        this.color = Integer.parseInt(towerInfo.user.color, 16);
+        this.color = owner.color;
         this.goldGain = towerInfo.goldGain;
         this.updateCost = towerInfo.updateCost;
         this.repairCost = towerInfo.repairCost;
         this.my = towerInfo.my;
+        this.owner = owner._id;
 
     }
 
@@ -96,5 +101,14 @@ public class Tower extends AbsRow {
     @Override
     public int hashCode() {
         return (int) (serverId ^ (serverId >>> 32));
+    }
+
+    @Override
+    public void onBeforeSerialization() {
+        my = owner == game().me._id;
+    }
+
+    @Override
+    public void onAfterDeserialization() {
     }
 }

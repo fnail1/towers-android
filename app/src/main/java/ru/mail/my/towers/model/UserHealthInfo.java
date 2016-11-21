@@ -20,6 +20,10 @@ public class UserHealthInfo {
     public int regeneration;
 
     public UserHealthInfo(GsonHealthInfo gson) {
+        merge(gson);
+    }
+
+    public void merge(GsonHealthInfo gson) {
         current = gson.current;
         max = gson.max;
         regeneration = gson.regeneration;

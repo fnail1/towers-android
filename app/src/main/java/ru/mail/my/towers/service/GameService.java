@@ -18,6 +18,7 @@ import ru.mail.my.towers.api.model.GsonUserProfile;
 import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
+import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
@@ -43,22 +44,33 @@ public class GameService {
         }
     };
 
-    public GameService(Preferences preferences) {
-        me = preferences.getMyProfile();
-
+    public GameService(Preferences preferences, AppData data) {
+        UserInfo userInfo = data.users().select(preferences.getMeDbId());
+        if (userInfo == null) {
+            userInfo = new UserInfo();
+        }
+        me = userInfo;
     }
 
     public void updateMyProfile(GsonUserInfo data) {
+        boolean exist = me._id > 0;
+
         this.me.merge(data);
-        prefs().setMyProfile(me);
-        myProfileEvent.fire(me);
+
+        if (exist) {
+            data().users().save(me);
+            myProfileEvent.fire(me);
+        }
     }
 
 
     public void updateMyProfile(GsonUserProfile data) {
         this.me.merge(data);
-        prefs().setMyProfile(me);
-        myProfileEvent.fire(me);
+
+        if (me.serverId != 0) {
+            data().users().save(me);
+            myProfileEvent.fire(me);
+        }
     }
 
     public void updateMyProfile(String newName, int newColor, UpdateMyProfileCallback callback) {
@@ -97,13 +109,13 @@ public class GameService {
             Response<GsonGameInfoResponse> gameInfoResponse = api().getGameInfo().execute();
             if (gameInfoResponse.isSuccessful()) {
                 GsonGameInfoResponse gameInfo = gameInfoResponse.body();
-                me.merge(gameInfo.info);
-                prefs().setMyProfile(me);
-                myProfileEvent.fire(me);
+                if (gameInfo.success) {
+                    updateMyProfile(gameInfo.info);
+                }
             }
 
             Response<GsonGetProfileResponse> profileResponse = api().getMyProfile().execute();
-            if(profileResponse.code() == HttpURLConnection.HTTP_OK){
+            if (profileResponse.code() == HttpURLConnection.HTTP_OK) {
                 GsonGetProfileResponse body = profileResponse.body();
                 if (body.success) {
                     updateMyProfile(body.profile);
@@ -118,7 +130,11 @@ public class GameService {
                 if (myTowers.success) {
                     for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
                         for (GsonTowerInfo towerInfo : towersNet.inside) {
-                            Tower tower = new Tower(towerInfo);
+                            UserInfo owner = new UserInfo();
+                            owner.merge(towerInfo.user);
+                            data().users().save(owner);
+
+                            Tower tower = new Tower(towerInfo, owner);
                             data().towers().save(tower, generation);
                         }
                     }
@@ -128,11 +144,7 @@ public class GameService {
 
                 }
             }
-//
-//            Response<GsonCreateTowerResponse> createTowerResponse = api().createTower(55.874765, 37.912708, "Моя первая башня").execute();
-//            GsonCreateTowerResponse body = createTowerResponse.body();
-//            Tower t = new Tower(body.tower);
-//            data().towers().save(t, generation);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -154,7 +166,13 @@ public class GameService {
                         gameMessageEvent.fire("Башня не построена: " + body.error.message);
                     } else {
                         updateMyProfile(body.userInfo);
-                        Tower tower = new Tower(body.tower);
+
+                        UserInfo owner = new UserInfo();
+                        owner.merge(body.userInfo);
+                        owner.merge(body.tower.user);
+                        data().users().save(owner);
+
+                        Tower tower = new Tower(body.tower, owner);
                         data().towers().save(tower, prefs().getMyTowersGeneration());
                         mapObjects().loadMapObjects(latitude - .1, longitude - .1, latitude + .1, longitude + .1);
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");

@@ -308,6 +308,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         location.setLongitude(latLng.longitude);
         popup.setLocation(location);
         popup.setName(game().me.name + " (Башня " + (data().towers().countOfMy() + 1) + ")");
+        popup.setPOI(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2, getResources().getDimensionPixelOffset(R.dimen.popup_poi_window_size));
         popups.add(popup);
         popup.show();
 

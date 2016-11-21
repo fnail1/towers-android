@@ -4,32 +4,67 @@ import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.graphics.Region;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 
 public class HighlightTargetDrawable extends Drawable {
-    final private Paint mPaintAntiAlias;
-    private Path mPath;
-    private float mCenterX;
-    private float mCenterY;
-    private float mRadius;
+    final private Paint paintBackground;
+    final private Paint paintLineWhite;
+    final private Paint paintLineBlack;
+    private Path path;
+    private float centerX;
+    private float centerY;
+    private float radius;
 
     public HighlightTargetDrawable() {
-        mPaintAntiAlias = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaintAntiAlias.setStyle(Paint.Style.STROKE);
-        mPaintAntiAlias.setColor(0xCC000000);
-        mPaintAntiAlias.setStrokeWidth(2);
+        paintBackground = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintBackground.setStyle(Paint.Style.STROKE);
+        paintBackground.setColor(0x66000000);
+        paintBackground.setStrokeWidth(2);
+
+        paintLineWhite = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintLineWhite.setColor(0xffffffff);
+        paintLineWhite.setStyle(Paint.Style.STROKE);
+        paintLineWhite.setStrokeWidth(1);
+
+        paintLineBlack = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintLineBlack.setColor(0xff000000);
+        paintLineBlack.setStyle(Paint.Style.STROKE);
+        paintLineBlack.setStrokeWidth(1);
+        paintLineBlack.setStrokeCap(Paint.Cap.SQUARE);
     }
 
     @Override
     public void draw(Canvas canvas) {
-        if (mRadius > Float.MIN_NORMAL) {
-            canvas.drawCircle(mCenterX, mCenterY, mRadius, mPaintAntiAlias);
+        canvas.save();
+        if (radius > Float.MIN_NORMAL) {
+            canvas.drawCircle(centerX, centerY, radius, paintBackground);
 
-            canvas.clipPath(mPath, Region.Op.DIFFERENCE);
+            canvas.clipPath(path, Region.Op.DIFFERENCE);
         }
 
         canvas.drawColor(0xCC000000);
+
+        canvas.restore();
+
+        canvas.drawLine(centerX - 2 * radius, centerY, centerX - radius, centerY, paintLineWhite);
+        canvas.drawLine(centerX - radius, centerY, centerX - radius * 2 / 3, centerY, paintLineBlack);
+
+        canvas.drawLine(centerX + 2 * radius, centerY, centerX + radius, centerY, paintLineWhite);
+        canvas.drawLine(centerX + radius, centerY, centerX + radius * 2 / 3, centerY, paintLineBlack);
+
+        canvas.drawLine(centerX, centerY - 2 * radius, centerX, centerY - radius, paintLineWhite);
+        canvas.drawLine(centerX, centerY - radius, centerX, centerY - radius * 2 / 3, paintLineBlack);
+
+        canvas.drawLine(centerX, centerY + 2 * radius, centerX, centerY + radius, paintLineWhite);
+        canvas.drawLine(centerX, centerY + radius, centerX, centerY + radius * 2 / 3, paintLineBlack);
+
+        canvas.drawLine(centerX - radius / 5, centerY, centerX + radius / 5, centerY, paintLineBlack);
+        canvas.drawLine(centerX, centerY - radius / 5, centerX, centerY + radius / 5, paintLineBlack);
+
+        canvas.drawCircle(centerX, centerY, radius / 3, paintLineBlack);
     }
 
     @Override
@@ -44,26 +79,26 @@ public class HighlightTargetDrawable extends Drawable {
 
     @Override
     public int getOpacity() {
-        return 1;
+        return PixelFormat.UNKNOWN;
     }
 
     public void setWindow(float centerX, float centerY, float radius) {
-        mCenterX = centerX;
-        mCenterY = centerY;
-        mPath = new Path();
-        mRadius = radius;
-        mPath.addCircle(mCenterX, mCenterY, mRadius, Path.Direction.CW);
+        this.centerX = centerX;
+        this.centerY = centerY;
+        path = new Path();
+        this.radius = radius;
+        path.addCircle(this.centerX, this.centerY, this.radius, Path.Direction.CW);
     }
 
     public float getCenterX() {
-        return mCenterX;
+        return centerX;
     }
 
     public float getCenterY() {
-        return mCenterY;
+        return centerY;
     }
 
     public float getRadius() {
-        return mRadius;
+        return radius;
     }
 }
