@@ -2,13 +2,13 @@ package ru.mail.my.towers.gdb;
 
 import ru.mail.my.towers.model.Tower;
 
-public class Envelop {
+public class MapExtent {
     public double lat1;
     public double lng1;
     public double lat2;
     public double lng2;
 
-    public Envelop(double lat1, double lng1, double lat2, double lng2) {
+    public MapExtent(double lat1, double lng1, double lat2, double lng2) {
         set(lat1, lng1, lat2, lng2);
     }
 
@@ -30,7 +30,7 @@ public class Envelop {
         }
     }
 
-    public boolean intersect(Envelop env) {
+    public boolean intersect(MapExtent env) {
         return !(lat2 < env.lat1 || lat1 > env.lat2
                 || lng2 < env.lng1 || lng1 > env.lng2);
     }
@@ -49,12 +49,12 @@ public class Envelop {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Envelop envelop = (Envelop) o;
+        MapExtent mapExtent = (MapExtent) o;
 
-        if (Double.compare(envelop.lat1, lat1) != 0) return false;
-        if (Double.compare(envelop.lng1, lng1) != 0) return false;
-        if (Double.compare(envelop.lat2, lat2) != 0) return false;
-        return Double.compare(envelop.lng2, lng2) == 0;
+        if (Double.compare(mapExtent.lat1, lat1) != 0) return false;
+        if (Double.compare(mapExtent.lng1, lng1) != 0) return false;
+        if (Double.compare(mapExtent.lat2, lat2) != 0) return false;
+        return Double.compare(mapExtent.lng2, lng2) == 0;
 
     }
 
@@ -75,7 +75,7 @@ public class Envelop {
 
     @Override
     public String toString() {
-        return "Envelop{" +
+        return "MapExtent{" +
                 "lat1=" + lat1 +
                 ", lng1=" + lng1 +
                 ", lat2=" + lat2 +

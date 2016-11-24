@@ -13,7 +13,11 @@ public class ExclusiveExecutor2 {
     private final Runnable internalTask = new Runnable() {
         @Override
         public void run() {
-            ExclusiveExecutor2.this.task.run();
+            try {
+                ExclusiveExecutor2.this.task.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             executor.schedule(restartTask, minDelay, TimeUnit.MILLISECONDS);
         }
     };

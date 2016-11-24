@@ -29,11 +29,11 @@ public class MapObjectsService {
     private final ExclusiveExecutor2 executor = new ExclusiveExecutor2(3000, ThreadPool.SCHEDULER, this::loadMapObjectsSync);
 
     private final HashSet<Tower> cache = new HashSet<>();
-    private Envelop envelop;
+    private MapExtent mapExtent;
     private volatile MapObjectsLoadingCompleteEventArgs lastDeliveredArgs;
 
     public void loadMapObjects(double lat1, double lng1, double lat2, double lng2) {
-        envelop = new Envelop(lat1, lng1, lat2, lng2);
+        mapExtent = new MapExtent(lat1, lng1, lat2, lng2);
         lookupInMemoryCache();
 
         executor.execute(false);
@@ -45,14 +45,14 @@ public class MapObjectsService {
 
         synchronized (cache) {
             for (Tower tower : cache) {
-                if (envelop.inside(tower)) {
+                if (mapExtent.inside(tower)) {
                     cached.add(tower);
                 }
             }
         }
 
-//        Logger.logV("selection", "MEM: " + envelop + " -> " + cached.size());
-        lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, cached);
+//        Logger.logV("selection", "MEM: " + mapExtent + " -> " + cached.size());
+        lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(mapExtent, cached);
         loadingCompleteEvent.fire(lastDeliveredArgs);
     }
 
@@ -63,7 +63,7 @@ public class MapObjectsService {
         boolean hasNewObjects = false;
 
         try {
-            Response<GsonTowersInfoResponse> response = api().getTowersInfo(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2).execute();
+            Response<GsonTowersInfoResponse> response = api().getTowersInfo(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2).execute();
             if (response.code() != HttpURLConnection.HTTP_OK)
                 return;
 
@@ -94,7 +94,7 @@ public class MapObjectsService {
         }
 
 //        Logger.logV("selection", ">");
-//        CursorWrapper<Tower> select = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+//        CursorWrapper<Tower> select = data().towers().select(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
 //        try {
 //            if (select.moveToFirst()) {
 //                do {
@@ -107,7 +107,7 @@ public class MapObjectsService {
 //        } finally {
 //            select.close();
 //        }
-        boolean deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        boolean deleted = data().towers().deleteDeprecated(generation, false, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
 //        Logger.logV("selection", "" + deleted + " objects deleted");
 
 
@@ -120,7 +120,7 @@ public class MapObjectsService {
 
     private void lookupInDb() {
 //        Logger.logV("selection", ">");
-        CursorWrapper<Tower> towersCursor = data().towers().select(envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        CursorWrapper<Tower> towersCursor = data().towers().select(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
         try {
             if (towersCursor.moveToFirst()) {
                 HashSet<Tower> known = new HashSet<>(towersCursor.getCount());
@@ -139,8 +139,8 @@ public class MapObjectsService {
                 }
 
                 if (hasNewObjects) {
-//                    Logger.logV("selection", "DB: " + envelop + " -> " + known.size());
-                    lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(envelop, known);
+//                    Logger.logV("selection", "DB: " + mapExtent + " -> " + known.size());
+                    lastDeliveredArgs = new MapObjectsLoadingCompleteEventArgs(mapExtent, known);
                     loadingCompleteEvent.fire(lastDeliveredArgs);
                 }
             }
@@ -155,11 +155,11 @@ public class MapObjectsService {
 
     public static class MapObjectsLoadingCompleteEventArgs {
 
-        public final Envelop envelop;
+        public final MapExtent mapExtent;
         public final HashSet<Tower> towers;
 
-        public MapObjectsLoadingCompleteEventArgs(Envelop envelop, HashSet<Tower> towers) {
-            this.envelop = envelop;
+        public MapObjectsLoadingCompleteEventArgs(MapExtent mapExtent, HashSet<Tower> towers) {
+            this.mapExtent = mapExtent;
             this.towers = towers;
         }
     }

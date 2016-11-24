@@ -6,9 +6,12 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.location.Location;
+import android.support.annotation.NonNull;
+import android.text.TextPaint;
+import android.util.Log;
 import android.util.SparseArray;
-import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.Projection;
@@ -20,37 +23,58 @@ import ru.mail.my.towers.R;
 import ru.mail.my.towers.gdb.layers.TowerNetworksLayer;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
+import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
+import ru.mail.my.towers.toolkit.ThreadPool;
 
 import static ru.mail.my.towers.TowersApp.data;
 
 public class TowersMap {
     private static final double SCALE_DETAILED = 5.0;
     private static final double SCALE_MIDDLE = 2.0;
+    private static final TowerPoint[] TOWER_POINTS_EMPTY = new TowerPoint[]{};
 
+    private final ExclusiveExecutor2 buildDataExecutor = new ExclusiveExecutor2(0, ThreadPool.SCHEDULER, this::prepareData);
     private final Point screenPointBuffer = new Point();
     private final LatLng[] mapPointsBuffer = new LatLng[4];
     private final TowerNetworksLayer towerNetworksLayer = new TowerNetworksLayer();
     private final Location locationBuffer1 = new Location("");
     private final Location locationBuffer2 = new Location("");
     private final SparseArray<Paint> paints = new SparseArray<>();
+    private final TextPaint primaryTextPaint;
     private final int iconWidth;
+    private final TowersMapReadyToDrawListener listener;
+    private final Runnable callListenerTask = new Runnable() {
+        @Override
+        public void run() {
+            projection = null;
+            listener.onTowersMapReadyToDraw();
+        }
+    };
 
     private int screenWidth;
     private int screenHeight;
-    private double minLat;
-    private double maxLat;
-    private double minLng;
-    private double maxLng;
+    private MapExtent mapExtent;
     private double scale;
-    private TowerPoint[] points = {};
-    private SparseArray<TowerCircle> circles = new SparseArray<>();
+    private Projection projection;
+    private volatile int extentRequestCounter = 0;
+    private volatile ScreenDrawObjects screenDrawObjects = new ScreenDrawObjects(new TowerPoint[]{}, new SparseArray<>());
+    private volatile ScreenDataObjects screenDataObjects = new ScreenDataObjects(new ArrayList<TowerNetwork>(), new ArrayList<Tower>());
 
-    public TowersMap(Context context) {
+
+    public TowersMap(Context context, TowersMapReadyToDrawListener listener) {
         iconWidth = context.getResources().getDimensionPixelOffset(R.dimen.tower_icon_size);
+        this.listener = listener;
+        primaryTextPaint = new TextPaint();
+        primaryTextPaint.setColor(0xffffffff);
+        primaryTextPaint.setTextSize(48);
+        primaryTextPaint.setTypeface(Typeface.DEFAULT);
+        primaryTextPaint.setStyle(Paint.Style.STROKE);
     }
 
 
     public void onCameraMove(GoogleMap map) {
+        extentRequestCounter++;
+
         Projection projection = map.getProjection();
         screenPointBuffer.set(0, 0);
         mapPointsBuffer[0] = projection.fromScreenLocation(screenPointBuffer);
@@ -78,10 +102,7 @@ public class TowersMap {
             else if (maxLng < latLng.longitude)
                 maxLng = latLng.longitude;
         }
-        this.minLat = minLat;
-        this.maxLat = maxLat;
-        this.minLng = minLng;
-        this.maxLng = maxLng;
+        mapExtent = new MapExtent(minLat, minLng, maxLat, maxLng);
 
         locationBuffer1.setLatitude(minLat);
         locationBuffer1.setLongitude(minLng);
@@ -91,8 +112,10 @@ public class TowersMap {
 
 
         scale = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight) / locationBuffer1.distanceTo(locationBuffer2);
+//        Log.d("SCALE", "" + scale);
 
-        prepareData(projection);
+        this.projection = projection;
+        buildDataExecutor.execute(false);
     }
 
     public void onResize(int screenWidth, int screenHeight) {
@@ -101,44 +124,81 @@ public class TowersMap {
     }
 
     public void onDraw(Canvas canvas) {
-        for (int i = 0; i < circles.size(); i++) {
-            TowersMap.TowerCircle circle = circles.valueAt(i);
-            canvas.save();
-            canvas.clipPath(circle.clipPath);
-            canvas.drawRect(0, 0, screenWidth, screenHeight, circle.paint);
-            canvas.restore();
+        ScreenDrawObjects drawObjects = this.screenDrawObjects;
+        if (drawObjects == null)
+            return;
+
+        for (int i = 0; i < drawObjects.circles.size(); i++) {
+            drawObjects.circles.valueAt(i).draw(canvas, this.screenWidth, this.screenHeight);
         }
 
-
-        for (int i = 0; i < points.length; i++) {
-            TowerPoint tp = points[i];
-            int x = tp.rect.centerX();
-            int y = tp.rect.centerY();
-            int sz = (int) ((iconWidth / 2) * (1 + (float) (tp.size - 1) / 10));
-            int left = x - sz;
-            int top = y - sz;
-            int right = x + sz;
-            int bottom = y + sz;
-
-            canvas.drawRect(left, top, right, bottom, getIconPaint(tp.color));
-
+        for (int i = 0; i < drawObjects.points.length; i++) {
+            drawObjects.points[i].draw(canvas, this);
         }
+    }
 
+    private void prepareData() {
+        prepareData(projection);
     }
 
     private void prepareData(Projection projection) {
-        ArrayList<TowerNetwork> networks = data().towers().selectNetworks(minLat, minLng, maxLat, maxLng);
-        ArrayList<Tower> towers = data().towers().select(networks);
-        SparseArray<TowerCircle> features = new SparseArray<>();
-        TowersMap.TowerPoint[] points = new TowersMap.TowerPoint[towers.size()];
+        if (projection == null)
+            return;
+
+        int extentRequestNumber = extentRequestCounter;
+
+        ScreenDrawObjects drawObjects = buildScreenData(projection);
+        this.screenDrawObjects = drawObjects;
+
+        if (extentRequestCounter != extentRequestNumber) {
+            Log.d("TowersMap.Concurrent", "cancel 3");
+            return;
+        }
+
+        ThreadPool.UI.post(callListenerTask);
+
+        ScreenDataObjects dataObjects = new ScreenDataObjects();
+        dataObjects.networks = data().towers().selectNetworks(mapExtent);
+        if (extentRequestCounter != extentRequestNumber) {
+            Log.d("TowersMap.Concurrent", "cancel 1");
+            return;
+        }
+
+        dataObjects.towers = data().towers().select(dataObjects.networks);
+        if (extentRequestCounter != extentRequestNumber) {
+            Log.d("TowersMap.Concurrent", "cancel 2");
+            return;
+        }
+
+        this.screenDataObjects = dataObjects;
+        drawObjects = buildScreenData(projection);
+
+        if (extentRequestCounter != extentRequestNumber) {
+            Log.d("TowersMap.Concurrent", "cancel 3");
+            return;
+        }
+
+        this.screenDrawObjects = drawObjects;
+        ThreadPool.UI.post(callListenerTask);
+    }
+
+    @NonNull
+    private ScreenDrawObjects buildScreenData(Projection projection) {
+        ScreenDataObjects screenDataObjects = this.screenDataObjects;
+        ArrayList<TowerNetwork> networks = screenDataObjects.networks;
+        ArrayList<Tower> towers = screenDataObjects.towers;
+
+        SparseArray<TowerCircle> circles = new SparseArray<>();
+        TowerPoint[] points;
         if (scale > SCALE_DETAILED) {
             int idx = 0;
+            points = new TowerPoint[towers.size()];
             for (Tower tower : towers) {
                 LatLng latLng = new LatLng(tower.lat, tower.lng);
-                TowerCircle circle = features.get(tower.color);
+                TowerCircle circle = circles.get(tower.color);
                 if (circle == null) {
                     circle = new TowerCircle(getCirclePaint(tower.color));
-                    features.put(tower.color, circle);
+                    circles.put(tower.color, circle);
                 }
 
                 Point center = projection.toScreenLocation(latLng);
@@ -147,16 +207,39 @@ public class TowersMap {
                         (float) (tower.radius * scale),
                         Path.Direction.CCW);
 
-                TowerPoint tp = new TowerPoint(center, tower, scale);
+                TowerPoint tp = new TowerPoint(this, center, tower, scale);
                 points[idx++] = tp;
             }
-            this.circles = features;
 
         } else if (scale > SCALE_MIDDLE) {
+            points = TOWER_POINTS_EMPTY;
+            for (Tower tower : towers) {
+                LatLng latLng = new LatLng(tower.lat, tower.lng);
+                TowerCircle circle = circles.get(tower.color);
+                if (circle == null) {
+                    circle = new TowerCircle(getCirclePaint(tower.color));
+                    circles.put(tower.color, circle);
+                }
 
+                Point center = projection.toScreenLocation(latLng);
+                circle.clipPath.addCircle((float) center.x,
+                        (float) center.y,
+                        (float) (tower.radius * scale),
+                        Path.Direction.CCW);
+
+            }
         } else {
-
+            int idx = 0;
+            points = new TowerPoint[towers.size()];
+            for (Tower tower : towers) {
+                LatLng latLng = new LatLng(tower.lat, tower.lng);
+                Point center = projection.toScreenLocation(latLng);
+                TowerPoint tp = new TowerPoint(this, center, tower, scale);
+                points[idx++] = tp;
+            }
         }
+
+        return new ScreenDrawObjects(points, circles);
     }
 
     private Paint getIconPaint(int color) {
@@ -186,8 +269,13 @@ public class TowersMap {
         public TowerCircle(Paint paint) {
             clipPath = new Path();
             this.paint = paint;
+        }
 
-
+        public void draw(Canvas canvas, int screenWidth, int screenHeight) {
+            canvas.save();
+            canvas.clipPath(clipPath);
+            canvas.drawRect(0, 0, screenWidth, screenHeight, paint);
+            canvas.restore();
         }
     }
 
@@ -195,13 +283,64 @@ public class TowersMap {
         private final int color;
         private final Tower tower;
         private final Rect rect;
+        private final Rect iconRect;
+        private final Rect levelRect;
+        private final String levelText;
         int size = 1;
+        private final int levelLeft;
+        private final int levelBottom;
 
-        public TowerPoint(Point center, Tower tower, double scale) {
+        public TowerPoint(TowersMap towersMap, Point center, Tower tower, double scale) {
             this.color = tower.color | 0xFF000000;
             this.tower = tower;
             int radius = (int) (tower.radius * scale);
             rect = new Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius);
+            levelText = String.valueOf(tower.level + 1);
+            levelRect = new Rect();
+            towersMap.primaryTextPaint.getTextBounds(levelText, 0, levelText.length(), levelRect);
+            iconRect = new Rect();
+            int x = rect.centerX();
+            int y = rect.centerY();
+            int sz = (int) ((towersMap.iconWidth / 2) * (1 + (float) (size - 1) / 10));
+            iconRect.left = x - sz;
+            iconRect.top = y - sz;
+            iconRect.right = x + sz;
+            iconRect.bottom = y + sz;
+            levelLeft = iconRect.left + (sz - levelRect.width() / 2) - levelRect.left;
+            levelBottom = iconRect.bottom - (sz - levelRect.height() / 2) + levelRect.bottom;
         }
+
+        public void draw(Canvas canvas, TowersMap towersMap) {
+            canvas.drawRect(iconRect, towersMap.getIconPaint(color));
+            canvas.drawText(levelText, levelLeft, levelBottom, towersMap.primaryTextPaint);
+        }
+    }
+
+    private static class ScreenDrawObjects {
+        public final TowerPoint[] points;
+        public final SparseArray<TowerCircle> circles;
+
+        private ScreenDrawObjects(TowerPoint[] points, SparseArray<TowerCircle> circles) {
+            this.points = points;
+            this.circles = circles;
+        }
+    }
+
+    private static class ScreenDataObjects {
+        ArrayList<TowerNetwork> networks;
+        ArrayList<Tower> towers;
+
+        public ScreenDataObjects(ArrayList<TowerNetwork> towerNetworks, ArrayList<Tower> towers) {
+            networks = towerNetworks;
+            this.towers = towers;
+        }
+
+        public ScreenDataObjects() {
+
+        }
+    }
+
+    public interface TowersMapReadyToDrawListener {
+        void onTowersMapReadyToDraw();
     }
 }

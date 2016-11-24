@@ -35,12 +35,11 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
+import ru.mail.my.towers.gdb.MapExtent;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
-import ru.mail.my.towers.gdb.Envelop;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
-import ru.mail.my.towers.gdb.MapObjectsService;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.popups.TowerInfoPopup;
@@ -50,23 +49,29 @@ import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.location;
-import static ru.mail.my.towers.TowersApp.mapObjects;
 import static ru.mail.my.towers.TowersApp.prefs;
 import static ru.mail.my.towers.diagnostics.Logger.trace;
 
-public class MainActivity extends BaseFragmentActivity implements OnMapReadyCallback, LocationAppService.LocationChangedEventHandler, GoogleMap.OnCameraMoveListener, MapObjectsService.MapObjectsLoadingCompleteEventHandler, IMapPopup.IMapActivity, GameService.GameMessageEventHandler, MapObjectsView.MapObjectClickListener {
+public class MainActivity extends BaseFragmentActivity
+        implements OnMapReadyCallback,
+                   LocationAppService.LocationChangedEventHandler,
+                   GoogleMap.OnCameraMoveListener,
+//                   MapObjectsService.MapObjectsLoadingCompleteEventHandler,
+                   IMapPopup.IMapActivity,
+                   GameService.GameMessageEventHandler,
+                   MapObjectsView.MapObjectClickListener {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
     public static final int MIN_ZOOM_PREFERENCE = 10;
-    public static final int ZOOM_SHOW_ME = 15;
+    public static final int ZOOM_SHOW_ME = 18;
     public static final int TOWERS_VISIBILITY_SCALE_MAX = 5000;
 
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
     private final Location center = new Location("");
     private final Point point = new Point();
-    private final Envelop mapEnv = new Envelop(0, 0, 0, 0);
+    private final MapExtent mapEnv = new MapExtent(0, 0, 0, 0);
     private final Stack<IMapPopup> popups = new Stack<>();
 
     private GoogleMap map;
@@ -113,14 +118,14 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         } else if (TextUtils.isEmpty(game().me.name) || game().me.color == UserInfo.INVALID_COLOR) {
             startActivity(new Intent(this, EditProfileActivity.class));
         }
-        mapObjects().loadingCompleteEvent.add(this);
+//        mapObjects().loadingCompleteEvent.add(this);
         game().gameMessageEvent.add(this);
     }
 
     @Override
     protected void onPause() {
         game().gameMessageEvent.remove(this);
-        mapObjects().loadingCompleteEvent.remove(this);
+//        mapObjects().loadingCompleteEvent.remove(this);
 
         while (!popups.isEmpty())
             popups.pop().close();
@@ -254,23 +259,15 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
                 rightBottomCorner.getLatitude(),
                 rightBottomCorner.getLongitude());
 
-        mapObjects().loadMapObjects(leftTopCorner.getLatitude(), leftTopCorner.getLongitude(),
-                rightBottomCorner.getLatitude(), rightBottomCorner.getLongitude());
+//        mapObjects().loadMapObjects(leftTopCorner.getLatitude(), leftTopCorner.getLongitude(),
+//                rightBottomCorner.getLatitude(), rightBottomCorner.getLongitude());
+
+        mapObjectsView.onCameraMove(map);
 
         for (IMapPopup popup : popups) {
             if (popup instanceof CreateTowerPopup)
                 ((CreateTowerPopup) popup).setLocation(center);
         }
-    }
-
-    @Override
-    public void onMapObjectsLoadingComplete(MapObjectsService.MapObjectsLoadingCompleteEventArgs args) {
-        trace();
-        if (!mapEnv.intersect(args.envelop))
-            return;
-
-        Tower[] towers = args.towers.toArray(new Tower[args.towers.size()]);
-        runOnUiThread(() -> mapObjectsView.onCameraMove(map, towers));
     }
 
     @OnClick(R.id.settings)

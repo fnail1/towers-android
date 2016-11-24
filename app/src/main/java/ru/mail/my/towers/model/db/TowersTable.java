@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.diagnostics.Logger;
+import ru.mail.my.towers.gdb.MapExtent;
 import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
@@ -160,12 +161,13 @@ public class TowersTable {
         };
     }
 
-    public ArrayList<TowerNetwork> selectNetworks(double lat1, double lng1, double lat2, double lng2) {
+    public ArrayList<TowerNetwork> selectNetworks(MapExtent extent) {
         StringBuilder sb = new StringBuilder();
         sb.append("select distinct n.*\n");
         sb.append("from ").append(AppData.TABLE_TOWER_NETWORKS).append(" n \n");
-        sb.append("join ").append(AppData.TABLE_TOWERS).append(" t on t.").append(ColumnNames.NETWORK).append(" = n.").append(ColumnNames.ID);
-        filterLocation(sb, "t", lat1, lng1, lat2, lng2);
+        sb.append("join ").append(AppData.TABLE_TOWERS).append(" t on t.").append(ColumnNames.NETWORK).append(" = n.").append(ColumnNames.ID).append("\n");
+        sb.append("where ");
+        filterLocation(sb, "t",extent.lat1, extent.lng1, extent.lat2, extent.lng2);
         Cursor cursor = db.rawQuery(sb.toString(), null);
         try {
             return DbUtils.readToList(cursor, TowerNetwork.class, "n");
@@ -176,6 +178,9 @@ public class TowersTable {
 
 
     public ArrayList<Tower> select(ArrayList<TowerNetwork> networks) {
+        if (networks.isEmpty())
+            return new ArrayList<>();
+
         StringBuilder sb = new StringBuilder();
         sb.append("select * \n");
         sb.append("from ").append(AppData.TABLE_TOWERS).append(" n \n");
