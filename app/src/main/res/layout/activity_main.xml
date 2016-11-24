@@ -14,7 +14,7 @@
         android:layout_height="match_parent"
         tools:context="ru.mail.my.towers.ui.MainActivity"/>
 
-    <ru.mail.my.towers.ui.widgets.CirclesView
+    <ru.mail.my.towers.ui.widgets.MapObjectsView
         android:id="@+id/map_objects"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -27,16 +27,17 @@
         android:layout_height="match_parent"
         android:visibility="visible">
 
-        <TextView
+        <ImageView
             android:id="@+id/settings"
             style="@style/MapControlsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:padding="8dp"
-            android:text="settings"
-            android:textAppearance="@style/MapControlsButton.TextAppearance"
+            android:padding="4dp"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/colorMapCtrl"
             />
 
         <ImageButton
@@ -47,7 +48,8 @@
             android:layout_alignParentBottom="true"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:padding="8dp"
+            android:padding="4dp"
+            android:layout_margin="8dp"
             android:src="@android:drawable/ic_menu_compass"
             android:tint="@color/colorMapCtrl"
             />
@@ -60,7 +62,8 @@
             android:layout_above="@+id/current_location"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:padding="8dp"
+            android:padding="4dp"
+            android:layout_margin="8dp"
             android:src="@android:drawable/ic_menu_add"
             android:tint="@color/colorMapCtrl"
             />

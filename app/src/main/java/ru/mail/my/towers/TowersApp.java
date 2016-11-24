@@ -7,7 +7,7 @@ import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.service.AppStateService;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
-import ru.mail.my.towers.service.MapObjectsService;
+import ru.mail.my.towers.gdb.MapObjectsService;
 import ru.mail.my.towers.service.Preferences;
 
 public class TowersApp extends Application {

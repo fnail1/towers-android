@@ -20,7 +20,7 @@
     </style>
 
     <style name="MapControlPopupCaption">
-        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+        <item name="android:textColor">@color/color_map_popup_ctrl</item>
     </style>
 
     <style name="MapControlPopupCaption.TextAppearance">
@@ -30,7 +30,7 @@
     </style>
 
     <style name="MapControlPopupFieldHeader">
-        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+        <item name="android:textColor">@color/color_map_popup_ctrl</item>
     </style>
 
     <style name="MapControlPopupFieldHeader.TextAppearance">
@@ -50,7 +50,7 @@
     </style>
 
     <style name="MapControlPopupButton">
-        <item name="android:textColor">@color/colorMapPopupCtrl</item>
+        <item name="android:textColor">@color/color_map_popup_ctrl</item>
     </style>
 
     <style name="MapControlPopupButton.TextAppearance">

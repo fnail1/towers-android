@@ -1,5 +1,6 @@
 package ru.mail.my.towers.ui.popups;
 
+import android.graphics.Point;
 import android.location.Location;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,14 +8,18 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import ru.mail.my.towers.R;
+import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.ui.widgets.HighlightTargetDrawable;
 import ru.mail.my.towers.utils.Utils;
-import ru.mail.my.towers.service.LocationAppService;
 
+import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.location;
 
 public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationChangedEventHandler {
@@ -51,32 +56,38 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
     @BindView(R.id.negative)
     TextView negative;
 
-    private PopupDialogResult dialogResult = PopupDialogResult.CANCEL;
-    private Location targetLocation;
+    private double latitude;
+    private double longitude;
 
     public CreateTowerPopup(ViewGroup parent, IMapActivity activity) {
         this.parent = parent;
         this.activity = activity;
-        popupView = LayoutInflater.from(this.parent.getContext()).inflate(R.layout.popup_create_tower, null);
+        popupView = LayoutInflater.from(this.parent.getContext()).inflate(R.layout.popup_tower_create, null);
         background = new HighlightTargetDrawable();
         ButterKnife.bind(this, popupView);
         popupView.setBackground(background);
     }
 
-    @Override
-    public void show() {
-        dialogResult = PopupDialogResult.CANCEL;
+    public void show(GoogleMap map) {
+        Point point = new Point(parent.getWidth() / 2, parent.getHeight() / 2);
+        LatLng latLng = map.getProjection().fromScreenLocation(point);
+        setCost(game().me.createCost);
+        Location location = new Location("");
+        location.setLatitude(latLng.latitude);
+        location.setLongitude(latLng.longitude);
+        setLocation(location);
+        setName(game().me.name + " (Башня " + (game().me.towersCount + 1) + ")");
+        background.setWindow(point.x, point.y, (float) parent.getResources().getDimensionPixelOffset(R.dimen.popup_poi_window_size));
 
         parent.addView(popupView);
-        popupView.setScaleX(1);
-        popupView.setScaleY(1);
+
         animateAppearance(caption, 100);
 
         animateAppearance(nameTitle, 130);
         animateAppearance(name, 150);
 
         animateAppearance(locationTitle, 180);
-        animateAppearance(location, 200);
+        animateAppearance(this.location, 200);
 
         animateAppearance(costTitle, 230);
         animateAppearance(cost, 250);
@@ -114,24 +125,21 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
         name.setText(value);
     }
 
-    public String getName() {
-        return name.getText().toString();
-    }
-
     public void setLocation(Location args) {
         if (args == null || Utils.isMockProvider(args)) {
-            targetLocation = null;
+            latitude = longitude = Double.NaN;
             this.location.setText("Не определено");
+            positive.setEnabled(false);
         } else if ((System.currentTimeMillis() - args.getTime()) > 5 * 60 * 1000) {
-            targetLocation = null;
+            latitude = longitude = Double.NaN;
             this.location.setText("Данные устарели");
+            positive.setEnabled(false);
+        } else {
+            latitude = args.getLatitude();
+            longitude = args.getLongitude();
+            this.location.setText(Utils.formatLocation(latitude, longitude));
+            positive.setEnabled(true);
         }
-        targetLocation = args;
-        this.location.setText(Utils.formatLocation(args));
-    }
-
-    public void setPOI(int x, int y, float radius) {
-        background.setWindow(x, y, radius);
     }
 
     public void setCost(int cost) {
@@ -140,7 +148,7 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
 
     @OnClick(R.id.positive)
     void onPositiveClick() {
-        dialogResult = PopupDialogResult.POSITIVE;
+        game().createTower(latitude, longitude, name.getText().toString());
         close();
     }
 
@@ -165,14 +173,6 @@ public class CreateTowerPopup implements IMapPopup, LocationAppService.LocationC
                 .translationY(-parent.getHeight())
                 .translationX(-parent.getWidth() / 2)
                 .setDuration(300);
-    }
-
-    public PopupDialogResult getResult() {
-        return dialogResult;
-    }
-
-    public Location getLocation() {
-        return targetLocation;
     }
 
     @Override

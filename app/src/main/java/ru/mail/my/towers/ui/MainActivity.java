@@ -4,24 +4,20 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.location.Location;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.view.LayoutInflaterCompat;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,7 +28,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.util.ArrayList;
 import java.util.Stack;
 
 import butterknife.BindView;
@@ -42,26 +37,24 @@ import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
-import ru.mail.my.towers.service.Envelop;
+import ru.mail.my.towers.gdb.Envelop;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
-import ru.mail.my.towers.service.MapObjectsService;
-import ru.mail.my.towers.toolkit.ThreadPool;
+import ru.mail.my.towers.gdb.MapObjectsService;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
-import ru.mail.my.towers.ui.popups.PopupDialogResult;
-import ru.mail.my.towers.ui.widgets.CirclesView;
+import ru.mail.my.towers.ui.popups.TowerInfoPopup;
+import ru.mail.my.towers.ui.widgets.MapObjectsView;
 
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
-import static ru.mail.my.towers.TowersApp.data;
 import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.location;
 import static ru.mail.my.towers.TowersApp.mapObjects;
 import static ru.mail.my.towers.TowersApp.prefs;
 import static ru.mail.my.towers.diagnostics.Logger.trace;
 
-public class MainActivity extends BaseFragmentActivity implements OnMapReadyCallback, LocationAppService.LocationChangedEventHandler, GoogleMap.OnCameraMoveListener, MapObjectsService.MapObjectsLoadingCompleteEventHandler, IMapPopup.IMapActivity, GameService.GameMessageEventHandler {
+public class MainActivity extends BaseFragmentActivity implements OnMapReadyCallback, LocationAppService.LocationChangedEventHandler, GoogleMap.OnCameraMoveListener, MapObjectsService.MapObjectsLoadingCompleteEventHandler, IMapPopup.IMapActivity, GameService.GameMessageEventHandler, MapObjectsView.MapObjectClickListener {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
@@ -79,7 +72,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
     private GoogleMap map;
 
     @BindView(R.id.map_objects)
-    protected CirclesView mapObjectsView;
+    protected MapObjectsView mapObjectsView;
 
     @BindView(R.id.map_controls)
     View mapControls;
@@ -103,6 +96,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+        mapObjectsView.setMapObjectClickListener(this);
     }
 
     @Override
@@ -233,6 +227,7 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
         latLng = projection.fromScreenLocation(point);
         center.setLongitude(latLng.longitude);
         center.setLatitude(latLng.latitude);
+        center.setTime(System.currentTimeMillis());
 //
 //        point.set(0, mapObjectsView.getHeight());
 //        latLng = projection.fromScreenLocation(point);
@@ -298,31 +293,14 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
 
     @OnClick(R.id.build_tower)
     protected void onBuildTowerClick() {
-        LatLng latLng = map.getProjection().fromScreenLocation(new Point(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2));
-
-
         CreateTowerPopup popup = new CreateTowerPopup(root, this);
-        popup.setCost(game().me.createCost);
-        Location location = new Location("");
-        location.setLatitude(latLng.latitude);
-        location.setLongitude(latLng.longitude);
-        popup.setLocation(location);
-        popup.setName(game().me.name + " (Башня " + (data().towers().countOfMy() + 1) + ")");
-        popup.setPOI(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2, getResources().getDimensionPixelOffset(R.dimen.popup_poi_window_size));
         popups.add(popup);
-        popup.show();
-
+        popup.show(map);
         hideMapControls();
     }
 
     @Override
     public void onPopupResult(IMapPopup popup) {
-        if (popup instanceof CreateTowerPopup) {
-            CreateTowerPopup createTowerPopup = (CreateTowerPopup) popup;
-            if (createTowerPopup.getResult() == PopupDialogResult.POSITIVE) {
-                game().createTower(createTowerPopup.getLocation(), createTowerPopup.getName());
-            }
-        }
         popups.remove(popup);
         restoreMapControls(true);
     }
@@ -353,5 +331,14 @@ public class MainActivity extends BaseFragmentActivity implements OnMapReadyCall
     @Override
     public void onGameNewMessage(String args) {
         runOnUiThread(() -> Toast.makeText(this, args, Toast.LENGTH_SHORT).show());
+    }
+
+    @Override
+    public void onMapObjectClick(Tower tower, Rect rect) {
+        TowerInfoPopup popup = new TowerInfoPopup(root, this);
+        popup.show(map, tower);
+        popups.add(popup);
+
+        hideMapControls();
     }
 }

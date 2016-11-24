@@ -12,7 +12,9 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.SparseArray;
+import android.view.MotionEvent;
 import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -22,13 +24,15 @@ import com.google.android.gms.maps.model.LatLng;
 import java.util.Arrays;
 
 import ru.mail.my.towers.R;
+import ru.mail.my.towers.gdb.TowersMap;
 import ru.mail.my.towers.model.Tower;
 
 
-public class CirclesView extends View {
+public class MapObjectsView extends View {
 
     private int iconWidth;
     private int iconHeight;
+    private TowersMap.TowerPoint pressedTowerPoint;
 
     private static Drawable loadIcon(Context context, int id) {
         Drawable icon;
@@ -40,16 +44,16 @@ public class CirclesView extends View {
         return icon;
     }
 
-    private final SparseArray<TowerCircle> features = new SparseArray<>();
+    private final SparseArray<TowersMap.TowerCircle> features = new SparseArray<>();
     private final SparseArray<Paint> paints = new SparseArray<>();
     private final Point point = new Point();
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
     private final Drawable icon;
-    private TowerPoint points[] = {};
+    private TowersMap.TowerPoint points[] = {};
+    private MapObjectClickListener mapObjectClickListener;
 
-
-    public CirclesView(Context context) {
+    public MapObjectsView(Context context) {
         super(context);
         icon = loadIcon(context, R.drawable.ic_tower);
         iconWidth = icon.getIntrinsicWidth();
@@ -57,14 +61,14 @@ public class CirclesView extends View {
     }
 
 
-    public CirclesView(Context context, AttributeSet attrs) {
+    public MapObjectsView(Context context, AttributeSet attrs) {
         super(context, attrs);
         icon = loadIcon(context, R.drawable.ic_tower);
         iconWidth = icon.getIntrinsicWidth();
         iconHeight = icon.getIntrinsicHeight();
     }
 
-    public CirclesView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public MapObjectsView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         icon = loadIcon(context, R.drawable.ic_tower);
         iconWidth = icon.getIntrinsicWidth();
@@ -72,7 +76,7 @@ public class CirclesView extends View {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public CirclesView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    public MapObjectsView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         icon = loadIcon(context, R.drawable.ic_tower);
         iconWidth = icon.getIntrinsicWidth();
@@ -101,19 +105,20 @@ public class CirclesView extends View {
         rightBottomCorner.setLatitude(latLng.latitude);
 
         double scale = Math.sqrt(width * width + height * height) / leftTopCorner.distanceTo(rightBottomCorner);
+        Log.d("SCALE", "" + scale);
 
         features.clear();
 
-        TowerPoint[] points = new TowerPoint[towers.length];
+        TowersMap.TowerPoint[] points = new TowersMap.TowerPoint[towers.length];
         int idx = 0;
 
 
         if (scale > 2) {
             for (Tower tower : towers) {
                 latLng = new LatLng(tower.lat, tower.lng);
-                TowerCircle circle = features.get(tower.color);
+                TowersMap.TowerCircle circle = features.get(tower.color);
                 if (circle == null) {
-                    circle = new TowerCircle(getPaint(tower.color));
+                    circle = new TowersMap.TowerCircle(getPaint(tower.color));
                     features.put(tower.color, circle);
                 }
 
@@ -123,14 +128,14 @@ public class CirclesView extends View {
                         (float) (tower.radius * scale),
                         Path.Direction.CCW);
 
-                TowerPoint tp = new TowerPoint(center, tower.color | 0xFF000000, (int) (tower.radius * scale));
+                TowersMap.TowerPoint tp = new TowersMap.TowerPoint(center, tower, scale);
                 points[idx++] = tp;
             }
         } else {
             for (Tower tower : towers) {
                 latLng = new LatLng(tower.lat, tower.lng);
                 Point center = projection.toScreenLocation(latLng);
-                TowerPoint tp = new TowerPoint(center, tower.color | 0xFF000000, (int) (tower.radius * scale));
+                TowersMap.TowerPoint tp = new TowersMap.TowerPoint(center, tower, scale);
                 points[idx++] = tp;
             }
         }
@@ -143,7 +148,7 @@ public class CirclesView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         for (int i = 0; i < features.size(); i++) {
-            TowerCircle circle = features.valueAt(i);
+            TowersMap.TowerCircle circle = features.valueAt(i);
             canvas.save();
             canvas.clipPath(circle.clipPath);
             canvas.drawRect(0, 0, getWidth(), getHeight(), circle.paint);
@@ -152,7 +157,7 @@ public class CirclesView extends View {
 
 
         for (int i = 0; i < points.length; i++) {
-            TowerPoint tp = points[i];
+            TowersMap.TowerPoint tp = points[i];
             Drawable d = DrawableCompat.wrap(icon);
             DrawableCompat.setTint(d.mutate(), tp.color);
             int x = tp.rect.centerX();
@@ -164,7 +169,7 @@ public class CirclesView extends View {
             int bottom = y + sz;
             d.setBounds(left, top, right, bottom);
 
-            canvas.drawRect(left, top, right, bottom, getPaint(0xFFFFFF));
+//            canvas.drawRect(left, top, right, bottom, getPaint(0xFFFFFF));
             d.draw(canvas);
 
         }
@@ -172,7 +177,35 @@ public class CirclesView extends View {
         super.onDraw(canvas);
     }
 
-    private TowerPoint[] generalize(TowerPoint[] points) {
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                for (TowersMap.TowerPoint towerPoint : points) {
+                    if (towerPoint.rect.contains(((int) event.getX()), (int) event.getY())) {
+                        pressedTowerPoint = towerPoint;
+                        return true;
+                    }
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (pressedTowerPoint != null && pressedTowerPoint.rect.contains((int) event.getX(), (int) event.getY())) {
+                    if (mapObjectClickListener != null) {
+                        mapObjectClickListener.onMapObjectClick(pressedTowerPoint.tower, pressedTowerPoint.rect);
+                    }
+                    pressedTowerPoint = null;
+                    return true;
+                }
+                // no break;
+            case MotionEvent.ACTION_CANCEL:
+                pressedTowerPoint = null;
+                break;
+        }
+
+        return super.onTouchEvent(event);
+    }
+
+    private TowersMap.TowerPoint[] generalize(TowersMap.TowerPoint[] points) {
         if (points.length == 0)
             return points;
 
@@ -186,20 +219,20 @@ public class CirclesView extends View {
             return o1.rect.top - o2.rect.top;
         });
         int cnt2 = unionIfClose(points);
-        TowerPoint[] r = new TowerPoint[points.length - cnt1 - cnt2];
+        TowersMap.TowerPoint[] r = new TowersMap.TowerPoint[points.length - cnt1 - cnt2];
         int idx = 0;
-        for (TowerPoint p : points) {
+        for (TowersMap.TowerPoint p : points) {
             if (p != null)
                 r[idx++] = p;
         }
         return r;
     }
 
-    private int unionIfClose(TowerPoint[] points) {
-        TowerPoint p0 = points[0];
+    private int unionIfClose(TowersMap.TowerPoint[] points) {
+        TowersMap.TowerPoint p0 = points[0];
         int intersection = 0;
         for (int i = 1; i < points.length; i++) {
-            TowerPoint p1 = points[i];
+            TowersMap.TowerPoint p1 = points[i];
             if (p1 == null)
                 continue;
             if (p0.color == p1.color && p0.rect.intersect(p1.rect)) {
@@ -224,26 +257,11 @@ public class CirclesView extends View {
         return paint;
     }
 
-    private static class TowerCircle {
-        public final Path clipPath;
-        public final Paint paint;
-
-        private TowerCircle(Paint paint) {
-            clipPath = new Path();
-            this.paint = paint;
-
-
-        }
+    public void setMapObjectClickListener(MapObjectClickListener mapObjectClickListener) {
+        this.mapObjectClickListener = mapObjectClickListener;
     }
 
-    private static class TowerPoint {
-        int color;
-        Rect rect;
-        int size = 1;
-
-        public TowerPoint(Point center, int color, int radius) {
-            this.color = color;
-            rect = new Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius);
-        }
+    public interface MapObjectClickListener {
+        void onMapObjectClick(Tower tower, Rect rect);
     }
 }

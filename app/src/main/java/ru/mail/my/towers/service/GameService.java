@@ -17,6 +17,7 @@ import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
 import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
+import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.toolkit.ThreadPool;
@@ -128,20 +129,43 @@ public class GameService {
             if (myTowersResponse.isSuccessful()) {
                 GsonMyTowersResponse myTowers = myTowersResponse.body();
                 if (myTowers.success) {
+                    int totalCount = 0;
                     for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
+                        if (towersNet.inside.length == 0)
+                            continue;
+                        totalCount += towersNet.inside.length;
+
+                        int sumLevel = 0;
+                        long[] serverIds = new long[towersNet.inside.length];
+                        for (int towerIndex = 0; towerIndex < towersNet.inside.length; towerIndex++) {
+                            GsonTowerInfo towerInfo = towersNet.inside[towerIndex];
+                            sumLevel += towerInfo.level;
+                            serverIds[towerIndex] = towerInfo.id;
+                        }
+
+                        TowerNetwork network = data().towers().selectNetworkByTowers(serverIds);
+                        if (network == null) {
+                            network = new TowerNetwork(towersNet);
+                        } else {
+                            network.merge(towersNet);
+                        }
+                        network.level = sumLevel / towersNet.inside.length;
+                        data().towers().save(network, generation);
+
                         for (GsonTowerInfo towerInfo : towersNet.inside) {
                             UserInfo owner = new UserInfo();
                             owner.merge(towerInfo.user);
                             data().users().save(owner);
 
                             Tower tower = new Tower(towerInfo, owner);
+                            tower.network = network._id;
                             data().towers().save(tower, generation);
                         }
                     }
+                    me.towersCount = totalCount;
+                    data().users().save(me);
                     prefs().setMyTowersGeneration(generation);
-                    int deleted = data().towers().deleteDeprecated(generation, true);
-                    Logger.logV("selection", "" + deleted + " objects deleted");
-
+                    data().towers().deleteDeprecated(generation, true);
                 }
             }
 
@@ -154,7 +178,7 @@ public class GameService {
         createTower(location.getLatitude(), location.getLongitude(), name);
     }
 
-    private void createTower(double latitude, double longitude, String name) {
+    public void createTower(double latitude, double longitude, String name) {
         ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
             try {
                 Response<GsonCreateTowerResponse> response = api().createTower(latitude, longitude, name).execute();
@@ -165,14 +189,12 @@ public class GameService {
                     if (!body.success) {
                         gameMessageEvent.fire("Башня не построена: " + body.error.message);
                     } else {
-                        updateMyProfile(body.userInfo);
+                        me.towersCount++;
+                        me.merge(body.userInfo);
+                        me.merge(body.tower.user);
+                        data().users().save(me);
 
-                        UserInfo owner = new UserInfo();
-                        owner.merge(body.userInfo);
-                        owner.merge(body.tower.user);
-                        data().users().save(owner);
-
-                        Tower tower = new Tower(body.tower, owner);
+                        Tower tower = new Tower(body.tower, me);
                         data().towers().save(tower, prefs().getMyTowersGeneration());
                         mapObjects().loadMapObjects(latitude - .1, longitude - .1, latitude + .1, longitude + .1);
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");

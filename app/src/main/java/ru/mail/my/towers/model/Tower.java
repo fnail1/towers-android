@@ -15,6 +15,7 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
     @DbColumn(name = ColumnNames.SERVER_ID, unique = true)
     public long serverId;
 
+    @DbColumn(name = ColumnNames.NETWORK)
     @DbForeignKey(table = AppData.TABLE_TOWER_NETWORKS, column = ColumnNames.ID)
     public long network;
 

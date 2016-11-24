@@ -4,4 +4,6 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="padding">16dp</dimen>
     <dimen name="popup_poi_window_size">32dp</dimen>
+    <dimen name="popup_poi_window_dia">64dp</dimen>
+    <dimen name="tower_icon_size">24dp</dimen>
 </resources>

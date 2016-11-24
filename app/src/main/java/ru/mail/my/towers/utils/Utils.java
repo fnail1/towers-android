@@ -247,7 +247,7 @@ public final class Utils {
     }
 
     @NonNull
-    private static String formatLocation(double latitude, double longitude) {
+    public static String formatLocation(double latitude, double longitude) {
         StringBuilder sb = new StringBuilder();
         formatCoord(latitude, sb);
         sb.append("; ");

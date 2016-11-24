@@ -1,5 +1,6 @@
 package ru.mail.my.towers.model;
 
+import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
 import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.model.db.AppData;
 
@@ -14,4 +15,23 @@ public class TowerNetwork extends AbsRow {
      * площадь сети
      */
     public float area;
+
+    /**
+     * уровень сети (кластера) - среднее арифметическое уровня всех башен в сети
+     */
+    public int level;
+
+
+    public TowerNetwork() {
+    }
+
+    public TowerNetwork(GsonTowersNetworkInfo towersNet) {
+        merge(towersNet);
+    }
+
+    public void merge(GsonTowersNetworkInfo towersNet) {
+        goldGain = towersNet.goldGain;
+        area = towersNet.area;
+    }
+
 }

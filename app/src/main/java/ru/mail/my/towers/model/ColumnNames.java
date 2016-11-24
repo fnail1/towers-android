@@ -7,4 +7,5 @@ public class ColumnNames {
     public static final String LAT = "lat";
     public static final String LNG = "lng";
     public static final String IS_MY = "my";
+    public static final String NETWORK = "network";
 }

@@ -70,6 +70,9 @@ public class UserInfo implements IDbSerializationHandlers {
      */
     public transient final UserGoldInfo gold = new UserGoldInfo();
 
+    public int towersCount;
+
+
     public int _gold_frequency;
     public int _gold_gain;
     public int _gold_current;

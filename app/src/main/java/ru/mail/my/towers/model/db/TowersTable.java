@@ -1,22 +1,33 @@
 package ru.mail.my.towers.model.db;
 
+import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+import android.text.TextUtils;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.Tower;
+import ru.mail.my.towers.model.TowerNetwork;
+import ru.mail.my.towers.toolkit.ThreadPool;
+
+import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
+import static ru.mail.my.towers.toolkit.collections.Query.query;
 
 public class TowersTable {
     private final ThreadLocal<SQLiteStatement> insert;
     private final ThreadLocal<SQLiteStatement> selectByServerId;
     private final ThreadLocal<SQLiteStatement> update;
     private final ThreadLocal<SQLiteStatement> selectIdByServerId;
+
+    private final ThreadLocal<SQLiteStatement> insertNetwork;
+    private final ThreadLocal<SQLiteStatement> updateNetwork;
 
 
     private final SQLiteDatabase db;
@@ -28,6 +39,9 @@ public class TowersTable {
                 "\nwhere " + ColumnNames.SERVER_ID + " = ?");
         update = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(Tower.class));
         selectIdByServerId = new SQLiteStatementSimpleBuilder(db, "select " + ColumnNames.ID + " from " + AppData.TABLE_TOWERS + " where " + ColumnNames.SERVER_ID + " = ?");
+
+        insertNetwork = new SQLiteStatementSimpleBuilder(db, DbUtils.buildInsert(TowerNetwork.class));
+        updateNetwork = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(TowerNetwork.class));
     }
 
     public long save(Tower tower, int generation) {
@@ -50,25 +64,60 @@ public class TowersTable {
         SQLiteStatement updateCmd = update.get();
         DbUtils.bindAllArgsAsStrings(updateCmd, DbUtils.buildUpdateArgs(tower));
         if (updateCmd.executeUpdateDelete() != 1)
-            Logger.logE("DB", "update failed");
+            safeThrow(new Exception("update failed id = " + tower._id));
         return tower._id;
     }
 
-    public int deleteDeprecated(int generation, boolean my) {
+    public long save(TowerNetwork network, int generation) {
+        network._generation = generation;
+        if (network._id == 0) {
+            SQLiteStatement insertCmd = insertNetwork.get();
+            DbUtils.bindAllArgsAsStrings(insertCmd, DbUtils.buildInsertArgs(network));
+            return network._id = insertCmd.executeInsert();
+        } else {
+            SQLiteStatement updateCmd = updateNetwork.get();
+            DbUtils.bindAllArgsAsStrings(updateCmd, DbUtils.buildUpdateArgs(network));
+            if (updateCmd.executeUpdateDelete() != 1)
+                safeThrow(new Exception("update failed id = " + network._id));
+            return network._id;
+        }
+    }
+
+    public boolean deleteDeprecated(int generation, boolean my) {
         StringBuilder sb = new StringBuilder();
 
         sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
         filterMy(sb, my);
-        return db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+        int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+
+//        sb = new StringBuilder();
+//        sb.append("(select count(*) ")
+//                .append(" from ").append(AppData.TABLE_TOWERS)
+//                .append(" where ").append(ColumnNames.NETWORK).append(" = ").append(AppData.TABLE_TOWER_NETWORKS).append(".").append(ColumnNames.ID)
+//                .append(") = 0");
+//
+//        int delete1 = db.delete(AppData.TABLE_TOWER_NETWORKS, sb.toString(), null);
+        int delete1 = 0;
+
+        return delete > 0 || delete1 > 0;
     }
 
-    public int deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
+    public boolean deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
         StringBuilder sb = new StringBuilder();
         sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
         filterMy(sb, my);
         sb.append("\n\t and ");
         filterLocation(sb, lat1, lng1, lat2, lng2);
-        return db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+        int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+
+        sb = new StringBuilder();
+        sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
+        filterMy(sb, my);
+        sb.append("\n\t and ");
+        filterLocation(sb, lat1, lng1, lat2, lng2);
+        int delete1 = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+
+        return delete > 0 || delete1 > 0;
     }
 
     private void filterMy(StringBuilder sb, boolean my) {
@@ -111,7 +160,84 @@ public class TowersTable {
         };
     }
 
+    public ArrayList<TowerNetwork> selectNetworks(double lat1, double lng1, double lat2, double lng2) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select distinct n.*\n");
+        sb.append("from ").append(AppData.TABLE_TOWER_NETWORKS).append(" n \n");
+        sb.append("join ").append(AppData.TABLE_TOWERS).append(" t on t.").append(ColumnNames.NETWORK).append(" = n.").append(ColumnNames.ID);
+        filterLocation(sb, "t", lat1, lng1, lat2, lng2);
+        Cursor cursor = db.rawQuery(sb.toString(), null);
+        try {
+            return DbUtils.readToList(cursor, TowerNetwork.class, "n");
+        } finally {
+            cursor.close();
+        }
+    }
+
+
+    public ArrayList<Tower> select(ArrayList<TowerNetwork> networks) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select * \n");
+        sb.append("from ").append(AppData.TABLE_TOWERS).append(" n \n");
+        sb.append("where ").append(ColumnNames.NETWORK).append(" in (");
+        for (TowerNetwork network : networks)
+            sb.append(network._id).append(", ");
+        sb.delete(sb.length() - 2, sb.length());
+        sb.append(")");
+
+        Cursor cursor = db.rawQuery(sb.toString(), null);
+        try {
+            return DbUtils.readToList(cursor, Tower.class, null);
+        } finally {
+            cursor.close();
+        }
+    }
+
     public int countOfMy() {
         return DbUtils.count(db, "select count (*) from " + AppData.TABLE_TOWERS + " where " + ColumnNames.IS_MY + " = 1", (String[]) null);
+    }
+
+    public TowerNetwork selectNetworkByTowers(long[] serverIds) {
+        if (serverIds.length == 0)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("select n.* \n");
+        sb.append("from ").append(AppData.TABLE_TOWER_NETWORKS).append(" n \n");
+        sb.append("join ").append(AppData.TABLE_TOWERS).append(" t on t.").append(ColumnNames.NETWORK).append(" = n.").append(ColumnNames.ID).append(" \n");
+        sb.append("where t.").append(ColumnNames.SERVER_ID).append(" in (");
+        for (long serverId : serverIds) {
+            sb.append(serverId).append(", ");
+        }
+        sb.delete(sb.length() - 2, sb.length());
+        sb.append(")\n");
+        sb.append("limit 1");
+
+        return DbUtils.readSingle(db, TowerNetwork.class, sb.toString());
+    }
+
+
+    public class MapEnvelopCursor extends CursorWrapper<Object> {
+        private final Field[] towerMap;
+        private final Field[] networkMap;
+
+        public MapEnvelopCursor(Cursor cursor) {
+            super(cursor);
+            towerMap = DbUtils.mapCursorForRawType(cursor, Tower.class, "t");
+            networkMap = DbUtils.mapCursorForRawType(cursor, TowerNetwork.class, "n");
+        }
+
+        @Override
+        public Object get() {
+            return null;
+        }
+
+        public Tower getTower() {
+            return DbUtils.readObjectFromCursor(cursor, new Tower(), towerMap);
+        }
+
+        public TowerNetwork getTowerNetwork() {
+            return DbUtils.readObjectFromCursor(cursor, new TowerNetwork(), networkMap);
+        }
     }
 }

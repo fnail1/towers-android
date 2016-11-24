@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#cc000000"
+                android:clickable="true"
+                tools:context=".ui.MainActivity">
+
+    <!--<ImageView-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:layout_centerInParent="true"-->
+    <!--android:scaleType="centerCrop"-->
+    <!--android:src="@drawable/bg_popup_create_tower"/>-->
+
+    <!--<View-->
+    <!--android:id="@+id/poi_anchor"-->
+    <!--android:layout_width="@dimen/popup_poi_window_dia"-->
+    <!--android:layout_height="@dimen/popup_poi_window_dia"-->
+    <!--android:layout_marginLeft="150dp"-->
+    <!--android:layout_marginTop="250dp"-->
+    <!--android:background="#66ff0000"-->
+    <!--/>-->
+
+    <TextView
+        android:id="@+id/caption"
+        style="@style/MapControlPopupCaption.TextAppearance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        tools:text="Заголовок"
+        />
+
+    <LinearLayout
+        android:id="@+id/infos_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:padding="8dp"
+        >
+
+
+        <TextView
+            android:id="@+id/owner_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="владелец"/>
+
+        <TextView
+            android:id="@+id/owner"
+            style="@style/MapControlPopupField"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            tools:text="Вы"/>
+
+        <TextView
+            android:id="@+id/location_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="координаты"/>
+
+        <TextView
+            android:id="@+id/location"
+            style="@style/MapControlPopupField"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            tools:text="12° 34' 35''; 54° 32' 10'' "/>
+
+        <TextView
+            android:id="@+id/level_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/name"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="уровень"/>
+
+        <TextView
+            android:id="@+id/level"
+            style="@style/MapControlPopupField"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:text="10"/>
+
+        <TextView
+            android:id="@+id/health_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/name"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="здоровье"/>
+
+        <TextView
+            android:id="@+id/health"
+            style="@style/MapControlPopupField"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:text="123/300"/>
+
+        <TextView
+            android:id="@+id/gold_title"
+            style="@style/MapControlPopupFieldHeader.TextAppearance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/name"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:text="доход"/>
+
+        <TextView
+            android:id="@+id/gold"
+            style="@style/MapControlPopupField"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/cost_title"
+            android:background="@null"
+            android:paddingBottom="8dp"
+            android:paddingEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingStart="8dp"
+            android:text="12"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/actions_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="@dimen/padding"
+        android:paddingRight="@dimen/padding"
+        tools:layout_alignTop="@+id/poi_anchor"
+        tools:layout_toLeftOf="@+id/poi_anchor"
+        >
+
+        <TextView
+            android:id="@+id/repair"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_ripple_popup_ctrl"
+            android:padding="8dp"
+            android:text="починить"
+            android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+            />
+
+        <TextView
+            android:id="@+id/attack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_ripple_popup_ctrl"
+            android:padding="8dp"
+            android:text="атаковать"
+            android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+            />
+
+        <TextView
+            android:id="@+id/destroy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_ripple_popup_ctrl"
+            android:padding="8dp"
+            android:text="сломать"
+            android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+            />
+
+        <TextView
+            android:id="@+id/upgrade"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_ripple_popup_ctrl"
+            android:padding="8dp"
+            android:text="прокачать"
+            android:textAppearance="@style/MapControlPopupButton.TextAppearance"
+            />
+    </LinearLayout>
+
+</RelativeLayout>

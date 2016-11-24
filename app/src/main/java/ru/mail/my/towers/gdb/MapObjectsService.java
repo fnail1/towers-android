@@ -1,17 +1,13 @@
-package ru.mail.my.towers.service;
+package ru.mail.my.towers.gdb;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
 
 import retrofit2.Response;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.data.CursorWrapper;
-import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
@@ -111,11 +107,11 @@ public class MapObjectsService {
 //        } finally {
 //            select.close();
 //        }
-        int deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
+        boolean deleted = data().towers().deleteDeprecated(generation, false, envelop.lat1, envelop.lng1, envelop.lat2, envelop.lng2);
 //        Logger.logV("selection", "" + deleted + " objects deleted");
 
 
-        if (deleted > 0) {
+        if (deleted) {
             lookupInDb();
         } else if (hasNewObjects) {
             lookupInMemoryCache();

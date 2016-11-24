@@ -1,4 +1,4 @@
-package ru.mail.my.towers.utils;
+package ru.mail.my.towers.gdb;
 
 import java.util.ArrayList;
 import java.util.Arrays;

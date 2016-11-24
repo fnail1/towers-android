@@ -1,4 +1,4 @@
-package ru.mail.my.towers.service;
+package ru.mail.my.towers.gdb;
 
 import ru.mail.my.towers.model.Tower;
 
