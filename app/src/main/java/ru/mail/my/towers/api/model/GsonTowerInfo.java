@@ -42,5 +42,7 @@ public class GsonTowerInfo {
      */
     public boolean my;
 
+    public long netId;
+
     public GsonUserProfile user;
 }

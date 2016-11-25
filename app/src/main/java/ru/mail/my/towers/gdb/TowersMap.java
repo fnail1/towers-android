@@ -28,12 +28,15 @@ import ru.mail.my.towers.toolkit.ThreadPool;
 
 import static ru.mail.my.towers.TowersApp.data;
 
-public class TowersMap {
+public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback {
     private static final double SCALE_DETAILED = 5.0;
     private static final double SCALE_MIDDLE = 2.0;
     private static final TowerPoint[] TOWER_POINTS_EMPTY = new TowerPoint[]{};
 
     private final ExclusiveExecutor2 buildDataExecutor = new ExclusiveExecutor2(0, ThreadPool.SCHEDULER, this::prepareData);
+    private final TowersDataLoader dataLoader = new TowersDataLoader(this);
+
+
     private final Point screenPointBuffer = new Point();
     private final LatLng[] mapPointsBuffer = new LatLng[4];
     private final TowerNetworksLayer towerNetworksLayer = new TowerNetworksLayer();
@@ -46,7 +49,6 @@ public class TowersMap {
     private final Runnable callListenerTask = new Runnable() {
         @Override
         public void run() {
-            projection = null;
             listener.onTowersMapReadyToDraw();
         }
     };
@@ -55,10 +57,11 @@ public class TowersMap {
     private int screenHeight;
     private MapExtent mapExtent;
     private double scale;
-    private Projection projection;
     private volatile int extentRequestCounter = 0;
     private volatile ScreenDrawObjects screenDrawObjects = new ScreenDrawObjects(new TowerPoint[]{}, new SparseArray<>());
     private volatile ScreenDataObjects screenDataObjects = new ScreenDataObjects(new ArrayList<TowerNetwork>(), new ArrayList<Tower>());
+    double a1, b1, d1;
+    double a2, b2, d2;
 
 
     public TowersMap(Context context, TowersMapReadyToDrawListener listener) {
@@ -85,6 +88,30 @@ public class TowersMap {
         screenPointBuffer.set(screenWidth, screenHeight);
         mapPointsBuffer[3] = projection.fromScreenLocation(screenPointBuffer);
 
+        double w1 = mapPointsBuffer[0].latitude;
+        double u1 = mapPointsBuffer[0].longitude;
+        double w2 = mapPointsBuffer[1].latitude;
+        double u2 = mapPointsBuffer[1].longitude;
+        double w3 = mapPointsBuffer[2].latitude;
+        double u3 = mapPointsBuffer[2].longitude;
+        double x1 = 0;
+        double y1 = 0;
+        double x2 = screenWidth;
+        double y2 = 0;
+        double x3 = 0;
+        double y3 = screenHeight;
+
+        double det = w1 * u2 - w1 * u3 - w2 * u1 + w2 * u3 + w3 * u1 - w3 * u2;
+
+        a1 = ((u2 - u3) * x1 - (u1 - u3) * x2 + (u1 - u2) * x3) / det;
+        b1 = (-(w2 - w3) * x1 + (w1 - w3) * x2 - (w1 - w2) * x3) / det;
+        d1 = ((w2 * u3 - w3 * u2) * x1 - (w1 * u3 - w3 * u1) * x2 + (w1 * u2 - w2 * u1) * x3) / det;
+
+        a2 = ((u2 - u3) * y1 - (u1 - u3) * y2 + (u1 - u2) * y3) / det;
+        b2 = (-(w2 - w3) * y1 + (w1 - w3) * y2 - (w1 - w2) * y3) / det;
+        d2 = ((w2 * u3 - w3 * u2) * y1 - (w1 * u3 - w3 * u1) * y2 + (w1 * u2 - w2 * u1) * y3) / det;
+
+
         LatLng latLng = mapPointsBuffer[0];
         double minLat = latLng.latitude;
         double maxLat = latLng.latitude;
@@ -102,19 +129,20 @@ public class TowersMap {
             else if (maxLng < latLng.longitude)
                 maxLng = latLng.longitude;
         }
-        mapExtent = new MapExtent(minLat, minLng, maxLat, maxLng);
+        mapExtent = new MapExtent(minLat - minLat * .01, minLng - minLng * .01, maxLat + maxLat * .01, minLng + maxLng * .01);
 
-        locationBuffer1.setLatitude(minLat);
-        locationBuffer1.setLongitude(minLng);
+        locationBuffer1.setLatitude(mapPointsBuffer[0].latitude);
+        locationBuffer1.setLongitude(mapPointsBuffer[0].longitude);
 
-        locationBuffer2.setLatitude(maxLat);
-        locationBuffer2.setLongitude(maxLng);
+        locationBuffer2.setLatitude(mapPointsBuffer[3].latitude);
+        locationBuffer2.setLongitude(mapPointsBuffer[3].longitude);
 
 
         scale = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight) / locationBuffer1.distanceTo(locationBuffer2);
-//        Log.d("SCALE", "" + scale);
 
-        this.projection = projection;
+        this.screenDrawObjects = buildScreenData();
+
+        dataLoader.requestData(mapExtent);
         buildDataExecutor.execute(false);
     }
 
@@ -138,76 +166,72 @@ public class TowersMap {
     }
 
     private void prepareData() {
-        prepareData(projection);
-    }
-
-    private void prepareData(Projection projection) {
-        if (projection == null)
-            return;
 
         int extentRequestNumber = extentRequestCounter;
 
-        ScreenDrawObjects drawObjects = buildScreenData(projection);
-        this.screenDrawObjects = drawObjects;
-
-        if (extentRequestCounter != extentRequestNumber) {
-            Log.d("TowersMap.Concurrent", "cancel 3");
-            return;
-        }
-
-        ThreadPool.UI.post(callListenerTask);
+//        this.screenDrawObjects = buildScreenData(projection);
+//        if (extentRequestCounter != extentRequestNumber) {
+//            Log.d("TowersMap.Concurrent", "cancel 4");
+//            return;
+//        }
+//        ThreadPool.UI.post(callListenerTask);
 
         ScreenDataObjects dataObjects = new ScreenDataObjects();
         dataObjects.networks = data().towers().selectNetworks(mapExtent);
-        if (extentRequestCounter != extentRequestNumber) {
-            Log.d("TowersMap.Concurrent", "cancel 1");
-            return;
-        }
-
-        dataObjects.towers = data().towers().select(dataObjects.networks);
         if (extentRequestCounter != extentRequestNumber) {
             Log.d("TowersMap.Concurrent", "cancel 2");
             return;
         }
 
-        this.screenDataObjects = dataObjects;
-        drawObjects = buildScreenData(projection);
-
+        dataObjects.towers = data().towers().select(dataObjects.networks);
         if (extentRequestCounter != extentRequestNumber) {
             Log.d("TowersMap.Concurrent", "cancel 3");
             return;
         }
 
+        this.screenDataObjects = dataObjects;
+        ScreenDrawObjects drawObjects = buildScreenData();
+
+        if (extentRequestCounter != extentRequestNumber) {
+            Log.d("TowersMap.Concurrent", "cancel 4");
+            return;
+        }
+
         this.screenDrawObjects = drawObjects;
         ThreadPool.UI.post(callListenerTask);
+
     }
 
+
     @NonNull
-    private ScreenDrawObjects buildScreenData(Projection projection) {
+    private ScreenDrawObjects buildScreenData() {
         ScreenDataObjects screenDataObjects = this.screenDataObjects;
+
         ArrayList<TowerNetwork> networks = screenDataObjects.networks;
         ArrayList<Tower> towers = screenDataObjects.towers;
 
         SparseArray<TowerCircle> circles = new SparseArray<>();
         TowerPoint[] points;
+
         if (scale > SCALE_DETAILED) {
             int idx = 0;
             points = new TowerPoint[towers.size()];
             for (Tower tower : towers) {
-                LatLng latLng = new LatLng(tower.lat, tower.lng);
                 TowerCircle circle = circles.get(tower.color);
                 if (circle == null) {
                     circle = new TowerCircle(getCirclePaint(tower.color));
                     circles.put(tower.color, circle);
                 }
 
-                Point center = projection.toScreenLocation(latLng);
-                circle.clipPath.addCircle((float) center.x,
-                        (float) center.y,
+                int x = (int) Math.round(a1 * tower.lat + b1 * tower.lng + d1);
+                int y = (int) Math.round(a2 * tower.lat + b2 * tower.lng + d2);
+                circle.clipPath.addCircle(
+                        (float) x,
+                        (float) y,
                         (float) (tower.radius * scale),
                         Path.Direction.CCW);
 
-                TowerPoint tp = new TowerPoint(this, center, tower, scale);
+                TowerPoint tp = new TowerPoint(this, x, y, tower, scale);
                 points[idx++] = tp;
             }
 
@@ -221,9 +245,9 @@ public class TowersMap {
                     circles.put(tower.color, circle);
                 }
 
-                Point center = projection.toScreenLocation(latLng);
-                circle.clipPath.addCircle((float) center.x,
-                        (float) center.y,
+                float x = Math.round(a1 * tower.lat + b1 * tower.lng + d1);
+                float y = Math.round(a2 * tower.lat + b2 * tower.lng + d2);
+                circle.clipPath.addCircle(x, y,
                         (float) (tower.radius * scale),
                         Path.Direction.CCW);
 
@@ -232,9 +256,9 @@ public class TowersMap {
             int idx = 0;
             points = new TowerPoint[towers.size()];
             for (Tower tower : towers) {
-                LatLng latLng = new LatLng(tower.lat, tower.lng);
-                Point center = projection.toScreenLocation(latLng);
-                TowerPoint tp = new TowerPoint(this, center, tower, scale);
+                int x = (int) Math.round(a1 * tower.lat + b1 * tower.lng + d1);
+                int y = (int) Math.round(a2 * tower.lat + b2 * tower.lng + d2);
+                TowerPoint tp = new TowerPoint(this, x, y, tower, scale);
                 points[idx++] = tp;
             }
         }
@@ -261,6 +285,12 @@ public class TowersMap {
         return paint;
     }
 
+    @Override
+    public void onTowersDataLoaded(MapExtent extent) {
+        if (mapExtent == extent || mapExtent.intersect(extent))
+            buildDataExecutor.execute(false);
+    }
+
 
     public static class TowerCircle {
         public final Path clipPath;
@@ -282,25 +312,23 @@ public class TowersMap {
     public static class TowerPoint {
         private final int color;
         private final Tower tower;
-        private final Rect rect;
+        //        private final Rect rect;
         private final Rect iconRect;
         private final Rect levelRect;
         private final String levelText;
-        int size = 1;
         private final int levelLeft;
         private final int levelBottom;
+        int size = 1;
 
-        public TowerPoint(TowersMap towersMap, Point center, Tower tower, double scale) {
+        public TowerPoint(TowersMap towersMap, int x, int y, Tower tower, double scale) {
             this.color = tower.color | 0xFF000000;
             this.tower = tower;
             int radius = (int) (tower.radius * scale);
-            rect = new Rect(center.x - radius, center.y - radius, center.x + radius, center.y + radius);
-            levelText = String.valueOf(tower.level + 1);
+//            rect = new Rect(x - radius, y - radius, x + radius, y + radius);
+            levelText = String.valueOf(tower.serverId + 1);
             levelRect = new Rect();
             towersMap.primaryTextPaint.getTextBounds(levelText, 0, levelText.length(), levelRect);
             iconRect = new Rect();
-            int x = rect.centerX();
-            int y = rect.centerY();
             int sz = (int) ((towersMap.iconWidth / 2) * (1 + (float) (size - 1) / 10));
             iconRect.left = x - sz;
             iconRect.top = y - sz;

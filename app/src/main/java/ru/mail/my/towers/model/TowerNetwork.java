@@ -21,6 +21,8 @@ public class TowerNetwork extends AbsRow {
      */
     public int level;
 
+    public long serverId;
+
 
     public TowerNetwork() {
     }

@@ -23,7 +23,6 @@ import static ru.mail.my.towers.toolkit.collections.Query.query;
 
 public class TowersTable {
     private final ThreadLocal<SQLiteStatement> insert;
-    private final ThreadLocal<SQLiteStatement> selectByServerId;
     private final ThreadLocal<SQLiteStatement> update;
     private final ThreadLocal<SQLiteStatement> selectIdByServerId;
 
@@ -36,8 +35,6 @@ public class TowersTable {
     public TowersTable(SQLiteDatabase db) {
         this.db = db;
         insert = new SQLiteStatementSimpleBuilder(db, DbUtils.buildInsert(Tower.class));
-        selectByServerId = new SQLiteStatementSimpleBuilder(db, DbUtils.buildSelectAll(Tower.class) +
-                "\nwhere " + ColumnNames.SERVER_ID + " = ?");
         update = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(Tower.class));
         selectIdByServerId = new SQLiteStatementSimpleBuilder(db, "select " + ColumnNames.ID + " from " + AppData.TABLE_TOWERS + " where " + ColumnNames.SERVER_ID + " = ?");
 
@@ -60,7 +57,10 @@ public class TowersTable {
 
             SQLiteStatement selectCmd = selectIdByServerId.get();
             selectCmd.bindLong(1, tower.serverId);
-            tower._id = selectCmd.simpleQueryForLong();
+            try {
+                tower._id = selectCmd.simpleQueryForLong();
+            } catch (Exception ignored) {
+            }
         }
         SQLiteStatement updateCmd = update.get();
         DbUtils.bindAllArgsAsStrings(updateCmd, DbUtils.buildUpdateArgs(tower));
@@ -163,11 +163,13 @@ public class TowersTable {
 
     public ArrayList<TowerNetwork> selectNetworks(MapExtent extent) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select distinct n.*\n");
+        sb.append("select distinct ");
+        DbUtils.buildComplexColumnNames(TowerNetwork.class, "n", sb);
+        sb.append("\n");
         sb.append("from ").append(AppData.TABLE_TOWER_NETWORKS).append(" n \n");
         sb.append("join ").append(AppData.TABLE_TOWERS).append(" t on t.").append(ColumnNames.NETWORK).append(" = n.").append(ColumnNames.ID).append("\n");
         sb.append("where ");
-        filterLocation(sb, "t",extent.lat1, extent.lng1, extent.lat2, extent.lng2);
+        filterLocation(sb, "t", extent.lat1, extent.lng1, extent.lat2, extent.lng2);
         Cursor cursor = db.rawQuery(sb.toString(), null);
         try {
             return DbUtils.readToList(cursor, TowerNetwork.class, "n");
@@ -219,6 +221,11 @@ public class TowersTable {
         sb.append("limit 1");
 
         return DbUtils.readSingle(db, TowerNetwork.class, sb.toString());
+    }
+
+    public TowerNetwork selectNetworkByServerId(long netId) {
+        String sql = DbUtils.buildSelectAll(TowerNetwork.class) + " where " + ColumnNames.SERVER_ID + " = ?";
+        return DbUtils.readSingle(db, TowerNetwork.class, sql, String.valueOf(netId));
     }
 
 
