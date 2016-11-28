@@ -12,8 +12,11 @@ import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
 
+import ru.mail.my.towers.gis.POI;
 import ru.mail.my.towers.gis.TowersMap;
 import ru.mail.my.towers.model.Tower;
+
+import static ru.mail.my.towers.TowersApp.data;
 
 
 public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDrawListener {
@@ -78,31 +81,60 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
             case MotionEvent.ACTION_UP:
                 if (Math.abs(gestureStartX - event.getX()) <= 5 &&
                         Math.abs(gestureStartY - event.getY()) <= 5) {
-                    TowersMap.GeoRequestResult found = towersMap.requestObjectsAt((int) gestureStartX, (int) gestureStartY, true);
-                    long tid = 0, nid = 0;
-                    double tdis = Double.POSITIVE_INFINITY;
-                    double ndis = Double.POSITIVE_INFINITY;
-                    for (int i = 0; i < found.networks.size(); i++) {
-                        Double d = found.networks.valueAt(i);
-                        if (ndis > d) {
-                            ndis = d;
-                            nid = found.networks.keyAt(i);
-                        }
-                    }
-                    for (int i = 0; i < found.towers.size(); i++) {
-                        Double d = found.towers.valueAt(i);
-                        if (tdis > d) {
-                            tdis = d;
-                            tid = found.towers.keyAt(i);
-                        }
-                    }
-                    towersMap.setSelection(tid, nid);
-                    invalidate();
+                    onTowersMapClick();
                 }
                 break;
         }
 
         return super.onTouchEvent(event);
+    }
+
+    public void onTowersMapClick() {
+        TowersMap.GeoRequestResult found = towersMap.requestObjectsAt((int) gestureStartX, (int) gestureStartY, true);
+
+        long tid = 0, nid = 0;
+        double tdis = Double.POSITIVE_INFINITY;
+        POI tpoi = null;
+        if (found.towers.size() > 0) {
+            for (int i = 0; i < found.towers.size(); i++) {
+                POI poi = found.towers.valueAt(i);
+                double dx = poi.x - gestureStartX;
+                double dy = poi.y - gestureStartY;
+                double d2 = dx * dx + dy * dy;
+                if (tdis > d2) {
+                    tdis = d2;
+                    tid = found.towers.keyAt(i);
+                    tpoi = poi;
+                }
+            }
+            Tower tower = data().towers().selectById(tid);
+            towersMap.setSelection(tower._id, tower.network);
+
+            if (mapObjectClickListener != null) {
+                Rect rect = new Rect(
+                        (int) (tpoi.x - tpoi.radius),
+                        (int) (tpoi.y - tpoi.radius),
+                        (int) (tpoi.x - tpoi.radius),
+                        (int) (tpoi.y - tpoi.radius));
+                mapObjectClickListener.onMapObjectClick(tower, rect);
+            }
+        } else if (found.networks.size() > 0) {
+            double ndis = Double.POSITIVE_INFINITY;
+            for (int i = 0; i < found.networks.size(); i++) {
+                POI poi = found.networks.valueAt(i);
+                float dx = poi.x - gestureStartX;
+                float dy = poi.y - gestureStartY;
+                double d = dx * dx + dy * dy;
+                if (ndis > d) {
+                    ndis = d;
+                    nid = found.networks.keyAt(i);
+                }
+            }
+            towersMap.setSelection(0, nid);
+        } else {
+            towersMap.setSelection(0, 0);
+        }
+        invalidate();
     }
 
 

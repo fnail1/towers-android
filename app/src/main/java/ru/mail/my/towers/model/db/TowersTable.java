@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringDef;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -232,6 +233,10 @@ public class TowersTable {
 
     public TowerNetwork selectNetworkById(long network) {
         return DbUtils.readSingle(db, TowerNetwork.class, DbUtils.buildSelectById(TowerNetwork.class), String.valueOf(network));
+    }
+
+    public Tower selectById(long towerId) {
+        return DbUtils.readSingle(db, Tower.class, DbUtils.buildSelectById(Tower.class), String.valueOf(towerId));
     }
 
 

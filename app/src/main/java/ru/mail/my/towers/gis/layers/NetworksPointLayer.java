@@ -10,6 +10,7 @@ import android.text.TextPaint;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.gis.IMapEngine;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.gis.POI;
 import ru.mail.my.towers.gis.ScreenDataObjects;
 import ru.mail.my.towers.gis.ScreenProjection;
 import ru.mail.my.towers.gis.TowersMap;
@@ -90,9 +91,8 @@ public class NetworksPointLayer extends PointLayer {
     public void requestObjectsAt(IMapEngine engine, int x, int y, TowersMap.GeoRequestResult out) {
         for (NetworkPoint point : points) {
             if (point.hitTest(x, y)) {
-                int dx = point.hitArea.centerX() - x;
-                int dy = point.hitArea.centerY() - y;
-                out.networks.put(point.network._id, Math.sqrt(dx * dx + dy * dy));
+                POI poi = new POI(point.hitArea.centerX(), point.hitArea.centerY(), point.hitArea.width() / 2);
+                out.networks.put(point.network._id, poi);
             }
         }
     }

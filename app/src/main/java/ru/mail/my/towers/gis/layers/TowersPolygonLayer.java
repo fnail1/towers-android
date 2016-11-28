@@ -11,6 +11,7 @@ import java.util.ArrayList;
 
 import ru.mail.my.towers.gis.IMapEngine;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.gis.POI;
 import ru.mail.my.towers.gis.ScreenDataObjects;
 import ru.mail.my.towers.gis.ScreenProjection;
 import ru.mail.my.towers.gis.TowersMap;
@@ -82,9 +83,9 @@ public class TowersPolygonLayer extends PolygonLayer {
                     int dy = c.y - y;
                     int d2 = dx * dx + dy * dy;
                     if (d2 < c.r * c.r) {
-                        double d = Math.sqrt(d2);
-                        out.towers.put(c.tower._id, d);
-                        out.networks.put(c.tower.network, d);
+                        POI poi = new POI(c.x, c.y, c.r);
+                        out.towers.put(c.tower._id, poi);
+                        out.networks.put(c.tower.network, poi);
                     }
                 }
             }

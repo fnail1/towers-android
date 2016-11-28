@@ -239,8 +239,8 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
     }
 
     public static final class GeoRequestResult {
-        public LongSparseArray<Double> towers = new LongSparseArray<>();
-        public LongSparseArray<Double> networks = new LongSparseArray<>();
+        public LongSparseArray<POI> towers = new LongSparseArray<>();
+        public LongSparseArray<POI> networks = new LongSparseArray<>();
 
         private GeoRequestResult() {
         }

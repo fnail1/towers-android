@@ -11,6 +11,7 @@ import android.text.TextPaint;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.gis.IMapEngine;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.gis.POI;
 import ru.mail.my.towers.gis.ScreenDataObjects;
 import ru.mail.my.towers.gis.ScreenProjection;
 import ru.mail.my.towers.gis.TowersMap;
@@ -125,8 +126,9 @@ public class TowersPointLayer extends PointLayer {
                 int dx = point.hitArea.centerX() - x;
                 int dy = point.hitArea.centerY() - y;
                 double d = Math.sqrt(dx * dx + dy * dy);
-                out.towers.put(point.tower._id, d);
-                out.networks.put(point.tower.network, d);
+                POI poi = new POI(point.hitArea.centerX(), point.hitArea.centerY(), point.hitArea.width() / 2);
+                out.towers.put(point.tower._id, poi);
+                out.networks.put(point.tower.network, poi);
             }
         }
     }
