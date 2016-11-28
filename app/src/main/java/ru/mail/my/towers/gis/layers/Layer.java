@@ -1,15 +1,12 @@
-package ru.mail.my.towers.gdb.layers;
+package ru.mail.my.towers.gis.layers;
 
 import android.graphics.Canvas;
-import android.util.LongSparseArray;
 
-import java.util.ArrayList;
-
-import ru.mail.my.towers.gdb.IMapEngine;
-import ru.mail.my.towers.gdb.MapExtent;
-import ru.mail.my.towers.gdb.ScreenDataObjects;
-import ru.mail.my.towers.gdb.ScreenProjection;
-import ru.mail.my.towers.gdb.TowersMap;
+import ru.mail.my.towers.gis.IMapEngine;
+import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.gis.ScreenDataObjects;
+import ru.mail.my.towers.gis.ScreenProjection;
+import ru.mail.my.towers.gis.TowersMap;
 
 public abstract class Layer {
     public double minVisibleScale;
@@ -23,7 +20,7 @@ public abstract class Layer {
 
     public abstract void draw(IMapEngine engine, Canvas canvas);
 
-    public abstract void requestObjectsAt(IMapEngine engine, int x, int y, TowersMap.MapObjectsSet out);
+    public abstract void requestObjectsAt(IMapEngine engine, int x, int y, TowersMap.GeoRequestResult out);
 
     public abstract void requestData(TowersMap towersMap, MapExtent mapExtent, ScreenDataObjects screenDataObjects);
 }

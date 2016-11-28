@@ -1,4 +1,4 @@
-package ru.mail.my.towers.gdb.layers;
+package ru.mail.my.towers.gis.layers;
 
 public abstract class PointLayer extends Layer {
 }

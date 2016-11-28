@@ -1,4 +1,4 @@
-package ru.mail.my.towers.gdb.geometry;
+package ru.mail.my.towers.gis.geometry;
 
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -15,4 +15,8 @@ public class TowerPoint extends Point {
     public int levelBottom;
     public TextPaint levelTextPaint;
     public Tower tower;
+    public Rect hpTotalRect;
+    public Paint hpTotalPaint;
+    public Rect hpCurrentRect;
+    public Paint hpCurrentPaint;
 }

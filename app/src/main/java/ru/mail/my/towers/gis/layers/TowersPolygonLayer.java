@@ -1,25 +1,21 @@
-package ru.mail.my.towers.gdb.layers;
+package ru.mail.my.towers.gis.layers;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Region;
 import android.support.v4.util.LongSparseArray;
 import android.util.SparseArray;
 
-import com.google.android.gms.maps.Projection;
-
 import java.util.ArrayList;
 
-import ru.mail.my.towers.gdb.IMapEngine;
-import ru.mail.my.towers.gdb.MapExtent;
-import ru.mail.my.towers.gdb.ScreenDataObjects;
-import ru.mail.my.towers.gdb.ScreenProjection;
-import ru.mail.my.towers.gdb.TowersMap;
+import ru.mail.my.towers.gis.IMapEngine;
+import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.gis.ScreenDataObjects;
+import ru.mail.my.towers.gis.ScreenProjection;
+import ru.mail.my.towers.gis.TowersMap;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
-import ru.mail.my.towers.utils.Utils;
 
 import static ru.mail.my.towers.TowersApp.data;
 
@@ -77,16 +73,18 @@ public class TowersPolygonLayer extends PolygonLayer {
     }
 
     @Override
-    public void requestObjectsAt(IMapEngine engine, int x, int y, TowersMap.MapObjectsSet out) {
+    public void requestObjectsAt(IMapEngine engine, int x, int y, TowersMap.GeoRequestResult out) {
         synchronized (this) {
             for (int i = 0; i < circles.size(); i++) {
                 TowerCircle circle = circles.valueAt(i);
                 for (CircleDescriptor c : circle.meta) {
                     int dx = c.x - x;
                     int dy = c.y - y;
-                    if (dx * dx + dy * dy < c.r * c.r) {
-                        out.towers.put(c.tower._id, c.tower);
-                        out.networks.put(c.tower.network, TowerNetwork.FAKE_INSTANCE);
+                    int d2 = dx * dx + dy * dy;
+                    if (d2 < c.r * c.r) {
+                        double d = Math.sqrt(d2);
+                        out.towers.put(c.tower._id, d);
+                        out.networks.put(c.tower.network, d);
                     }
                 }
             }

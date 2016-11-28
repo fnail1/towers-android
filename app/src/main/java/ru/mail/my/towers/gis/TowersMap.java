@@ -1,4 +1,4 @@
-package ru.mail.my.towers.gdb;
+package ru.mail.my.towers.gis;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -18,10 +18,10 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 
-import ru.mail.my.towers.gdb.layers.Layer;
-import ru.mail.my.towers.gdb.layers.NetworksPointLayer;
-import ru.mail.my.towers.gdb.layers.TowersPolygonLayer;
-import ru.mail.my.towers.gdb.layers.TowersPointLayer;
+import ru.mail.my.towers.gis.layers.Layer;
+import ru.mail.my.towers.gis.layers.NetworksPointLayer;
+import ru.mail.my.towers.gis.layers.TowersPolygonLayer;
+import ru.mail.my.towers.gis.layers.TowersPointLayer;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
@@ -207,25 +207,29 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
     }
 
     @NonNull
-    public MapObjectsSet requestObjectsAt(int x, int y) {
-        MapObjectsSet out = new MapObjectsSet();
+    public GeoRequestResult requestObjectsAt(int x, int y, boolean visibleOnly) {
+        GeoRequestResult out = new GeoRequestResult();
         for (Layer layer : layers) {
-            if (layer.isVisible(screenProjection.scale)) {
-                layer.requestObjectsAt(this, x, y, out);
+            if (!layer.isVisible(screenProjection.scale)) {
+                if (visibleOnly)
+                    continue;
+
+                layer.buildScreenData(this, screenDataObjects, screenProjection, generation);
             }
+
+            layer.requestObjectsAt(this, x, y, out);
         }
         return out;
     }
 
-    public void setSelection(MapObjectsSet objects) {
+    public void setSelection(long towerId, long networkId) {
         selectedTowers.clear();
         selectedNetworks.clear();
-        for (int i = 0; i < objects.networks.size(); i++) {
-            selectedNetworks.put(objects.networks.keyAt(i), objects.networks.valueAt(i));
+        if (networkId > 0) {
+            selectedNetworks.put(networkId, TowerNetwork.FAKE_INSTANCE);
         }
-
-        for (int i = 0; i < objects.towers.size(); i++) {
-            selectedTowers.put(objects.towers.keyAt(i), objects.towers.valueAt(i));
+        if (towerId > 0) {
+            selectedTowers.put(towerId, Tower.FAKE_INSTANCE);
         }
         buildScreenData();
     }
@@ -234,11 +238,12 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
         void onTowersMapReadyToDraw();
     }
 
-    public static final class MapObjectsSet {
-        public LongSparseArray<Tower> towers = new LongSparseArray<>();
-        public LongSparseArray<TowerNetwork> networks = new LongSparseArray<>();
+    public static final class GeoRequestResult {
+        public LongSparseArray<Double> towers = new LongSparseArray<>();
+        public LongSparseArray<Double> networks = new LongSparseArray<>();
 
-        private MapObjectsSet() {
+        private GeoRequestResult() {
         }
     }
+
 }

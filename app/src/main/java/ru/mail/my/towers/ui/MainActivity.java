@@ -35,7 +35,7 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
-import ru.mail.my.towers.gdb.MapExtent;
+import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
@@ -71,7 +71,6 @@ public class MainActivity extends BaseFragmentActivity
     private final Location rightBottomCorner = new Location("");
     private final Location center = new Location("");
     private final Point point = new Point();
-    private final MapExtent mapEnv = new MapExtent(0, 0, 0, 0);
     private final Stack<IMapPopup> popups = new Stack<>();
 
     private GoogleMap map;
@@ -86,7 +85,6 @@ public class MainActivity extends BaseFragmentActivity
     protected ViewGroup root;
 
     private Marker currentLocationMarker;
-    private boolean showTowers;
     private GoogleApiClient client;
     private boolean mapControlsVisible = true;
 
@@ -233,34 +231,12 @@ public class MainActivity extends BaseFragmentActivity
         center.setLongitude(latLng.longitude);
         center.setLatitude(latLng.latitude);
         center.setTime(System.currentTimeMillis());
-//
-//        point.set(0, mapObjectsView.getHeight());
-//        latLng = projection.fromScreenLocation(point);
-//        Location leftBottom = new Location("");
-//        leftBottom.setLatitude(latLng.latitude);
-//        leftBottom.setLongitude(latLng.longitude);
-//
-//        point.set(mapObjectsView.getWidth(), 0);
-//        latLng = projection.fromScreenLocation(point);
-//        Location rightTop = new Location("");
-//        rightTop.setLatitude(latLng.latitude);
-//        rightTop.setLongitude(latLng.longitude);
-//
+
         point.set(mapObjectsView.getWidth() + 50, mapObjectsView.getHeight() + 50);
         latLng = projection.fromScreenLocation(point);
         rightBottomCorner.setLongitude(latLng.longitude);
         rightBottomCorner.setLatitude(latLng.latitude);
 
-        float distance = leftTopCorner.distanceTo(rightBottomCorner);
-        showTowers = distance <= TOWERS_VISIBILITY_SCALE_MAX;
-
-        mapEnv.set(leftTopCorner.getLatitude(),
-                leftTopCorner.getLongitude(),
-                rightBottomCorner.getLatitude(),
-                rightBottomCorner.getLongitude());
-
-//        mapObjects().loadMapObjects(leftTopCorner.getLatitude(), leftTopCorner.getLongitude(),
-//                rightBottomCorner.getLatitude(), rightBottomCorner.getLongitude());
 
         mapObjectsView.onCameraMove(map);
 

@@ -12,6 +12,8 @@ import static ru.mail.my.towers.TowersApp.game;
 @DbTable(name = AppData.TABLE_TOWERS)
 public class Tower extends AbsRow implements IDbSerializationHandlers{
 
+    public static final Tower FAKE_INSTANCE = new Tower();
+
     @DbColumn(name = ColumnNames.SERVER_ID, unique = true)
     public long serverId;
 

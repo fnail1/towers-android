@@ -5,19 +5,16 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.support.annotation.NonNull;
-import android.text.TextUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
-import ru.mail.my.towers.diagnostics.Logger;
-import ru.mail.my.towers.gdb.MapExtent;
+import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
-import ru.mail.my.towers.toolkit.ThreadPool;
 
 import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
 import static ru.mail.my.towers.toolkit.collections.Query.query;

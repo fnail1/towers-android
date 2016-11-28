@@ -6,4 +6,7 @@
     <dimen name="popup_poi_window_size">32dp</dimen>
     <dimen name="popup_poi_window_dia">64dp</dimen>
     <dimen name="tower_icon_size">24dp</dimen>
+    <dimen name="tower_hp_offset">2dp</dimen>
+    <dimen name="tower_hp_width">32dp</dimen>
+    <dimen name="tower_hp_height">3dp</dimen>
 </resources>

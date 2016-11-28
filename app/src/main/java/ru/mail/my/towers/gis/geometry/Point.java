@@ -1,4 +1,4 @@
-package ru.mail.my.towers.gdb.geometry;
+package ru.mail.my.towers.gis.geometry;
 
 import android.graphics.Rect;
 

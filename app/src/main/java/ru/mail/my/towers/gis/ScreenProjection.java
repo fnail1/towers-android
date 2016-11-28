@@ -1,4 +1,4 @@
-package ru.mail.my.towers.gdb;
+package ru.mail.my.towers.gis;
 
 import android.location.Location;
 

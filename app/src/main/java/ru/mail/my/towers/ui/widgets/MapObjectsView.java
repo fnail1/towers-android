@@ -12,7 +12,7 @@ import android.view.View;
 
 import com.google.android.gms.maps.GoogleMap;
 
-import ru.mail.my.towers.gdb.TowersMap;
+import ru.mail.my.towers.gis.TowersMap;
 import ru.mail.my.towers.model.Tower;
 
 
@@ -78,8 +78,25 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
             case MotionEvent.ACTION_UP:
                 if (Math.abs(gestureStartX - event.getX()) <= 5 &&
                         Math.abs(gestureStartY - event.getY()) <= 5) {
-                    TowersMap.MapObjectsSet found = towersMap.requestObjectsAt((int) gestureStartX, (int) gestureStartY);
-                    towersMap.setSelection(found);
+                    TowersMap.GeoRequestResult found = towersMap.requestObjectsAt((int) gestureStartX, (int) gestureStartY, true);
+                    long tid = 0, nid = 0;
+                    double tdis = Double.POSITIVE_INFINITY;
+                    double ndis = Double.POSITIVE_INFINITY;
+                    for (int i = 0; i < found.networks.size(); i++) {
+                        Double d = found.networks.valueAt(i);
+                        if (ndis > d) {
+                            ndis = d;
+                            nid = found.networks.keyAt(i);
+                        }
+                    }
+                    for (int i = 0; i < found.towers.size(); i++) {
+                        Double d = found.towers.valueAt(i);
+                        if (tdis > d) {
+                            tdis = d;
+                            tid = found.towers.keyAt(i);
+                        }
+                    }
+                    towersMap.setSelection(tid, nid);
                     invalidate();
                 }
                 break;

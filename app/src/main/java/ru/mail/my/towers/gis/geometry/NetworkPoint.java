@@ -1,11 +1,9 @@
-package ru.mail.my.towers.gdb.geometry;
+package ru.mail.my.towers.gis.geometry;
 
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextPaint;
 
-import ru.mail.my.towers.gdb.geometry.Point;
-import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 
 public class NetworkPoint extends Point {
