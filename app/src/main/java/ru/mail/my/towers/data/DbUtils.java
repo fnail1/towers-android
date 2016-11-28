@@ -401,6 +401,27 @@ public class DbUtils {
     }
 
     @NonNull
+    public static String buildSelectById(@NonNull Class<?> rawType, String keyColumn) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("select ");
+
+        for (Field field : iterateFields(rawType)) {
+            DbColumn column = field.getAnnotation(DbColumn.class);
+            String name = getColumnName(field, column);
+            sb.append(name);
+            sb.append(", ");
+        }
+        sb.delete(sb.length() - 2, sb.length());
+        sb.append(" from ");
+        sb.append(getTableName(rawType));
+        sb.append(" where ");
+        sb.append(keyColumn);
+        sb.append(" = ?");
+
+        return sb.toString();
+    }
+
+    @NonNull
     public static <T> ArrayList<T> readToList(@NonNull Cursor cursor, @NonNull Class<T> rawType, String tableAlias) {
         CursorReader<T> reader = new CursorReader<>(cursor, rawType, mapCursorForRawType(cursor, rawType, tableAlias));
         ArrayList<T> list = new ArrayList<>(cursor.getCount());

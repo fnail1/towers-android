@@ -278,4 +278,11 @@ public final class Utils {
     public static boolean isMockProvider(Location args) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 && args.isFromMockProvider();
     }
+
+    public static int highlightColor(int baseColor, int highlighting, int alpha) {
+        return Color.argb(alpha,
+                Math.max(255, Color.red(baseColor) + Color.red(highlighting)),
+                Math.max(255, Color.green(baseColor) + Color.green(highlighting)),
+                Math.max(255, Color.blue(baseColor) + Color.blue(highlighting)));
+    }
 }

@@ -6,6 +6,7 @@ import ru.mail.my.towers.model.db.AppData;
 
 @DbTable(name = AppData.TABLE_TOWER_NETWORKS)
 public class TowerNetwork extends AbsRow {
+    public static final TowerNetwork FAKE_INSTANCE = new TowerNetwork();
     /**
      * сколько сеть добывает золота
      */
@@ -22,6 +23,10 @@ public class TowerNetwork extends AbsRow {
     public int level;
 
     public long serverId;
+    public double lat;
+    public double lng;
+    public int count;
+    public int color;
 
 
     public TowerNetwork() {

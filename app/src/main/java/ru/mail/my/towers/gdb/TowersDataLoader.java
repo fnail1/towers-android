@@ -1,7 +1,5 @@
 package ru.mail.my.towers.gdb;
 
-import android.support.v4.util.LongSparseArray;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 
@@ -44,26 +42,65 @@ public class TowersDataLoader {
             if (!towersInfo.success)
                 return;
 
-            LongSparseArray<TowerNetwork> networks = new LongSparseArray<>();
-            for (GsonTowerInfo towerInfo : towersInfo.towers) {
-                TowerNetwork network = networks.get(towerInfo.netId);
-                if (network == null) {
-                    network = data().towers().selectNetworkByServerId(towerInfo.netId);
-                    if (network == null) {
-                        network = new TowerNetwork();
-                        network.serverId = towerInfo.netId;
-                        data().towers().save(network, generation);
+            for (GsonTowersInfoResponse.GsonTowersCollection networkInfo : towersInfo.towersNew) {
+                if (networkInfo.towers.length == 0)
+                    continue;
+
+                TowerNetwork network = null;
+                for (GsonTowerInfo towerInfo : networkInfo.towers) {
+                    Tower tower = data().towers().selectByServerId(towerInfo.id);
+                    if (tower != null) {
+                        network = data().towers().selectNetworkById(tower.network);
+                        break;
                     }
                 }
-                UserInfo owner = new UserInfo();
-                owner.merge(towerInfo.user);
-                data().users().save(owner);
 
-                Tower tower = new Tower(towerInfo, owner);
-                tower.network = network._id;
-                data().towers().save(tower, generation);
+                if (network == null) {
+                    network = new TowerNetwork();
+                    data().towers().save(network, generation);
+                }
 
+                double lat = 0, lng = 0;
+                int level = 0;
+
+                for (GsonTowerInfo towerInfo : networkInfo.towers) {
+                    lat += towerInfo.lat;
+                    lng += towerInfo.lng;
+                    level += towerInfo.level;
+                    network.color = UserInfo.parseColor(towerInfo.user.color);
+                }
+
+                double centerLat = lat / networkInfo.towers.length;
+                double centerLng = lng / networkInfo.towers.length;
+                double dmin = Double.MAX_VALUE;
+                GsonTowerInfo closest = null;
+                for (GsonTowerInfo towerInfo : networkInfo.towers) {
+                    double dlat = towerInfo.lat - centerLat;
+                    double dlng = towerInfo.lng - centerLng;
+                    double d = dlat * dlat + dlng * dlng;
+                    if (d < dmin) {
+                        dmin = d;
+                        closest = towerInfo;
+                    }
+                }
+                //noinspection ConstantConditions
+                network.lat = closest.lat;
+                network.lng = closest.lng;
+                network.level = level / networkInfo.towers.length;
+                network.count = networkInfo.towers.length;
+                data().towers().save(network, generation);
+
+                for (GsonTowerInfo towerInfo : networkInfo.towers) {
+                    UserInfo owner = new UserInfo();
+                    owner.merge(towerInfo.user);
+                    data().users().save(owner);
+
+                    Tower tower = new Tower(towerInfo, owner);
+                    tower.network = network._id;
+                    data().towers().save(tower, generation);
+                }
             }
+
             prefs().setTowersGeneration(generation);
         } catch (IOException e) {
             e.printStackTrace();
@@ -71,7 +108,7 @@ public class TowersDataLoader {
 
         data().towers().deleteDeprecated(generation, false, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
 
-        callback.onTowersDataLoaded(extent);
+        callback.onTowersDataLoaded(mapExtent);
     }
 
     public interface TowersDataLoaderCallback {

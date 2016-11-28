@@ -1,5 +1,7 @@
 package ru.mail.my.towers.gdb;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import ru.mail.my.towers.model.Tower;
 
 public class MapExtent {
@@ -10,6 +12,40 @@ public class MapExtent {
 
     public MapExtent(double lat1, double lng1, double lat2, double lng2) {
         set(lat1, lng1, lat2, lng2);
+    }
+
+    public MapExtent(LatLng[] points) {
+        double minLat = Double.POSITIVE_INFINITY;
+        double maxLat = Double.NEGATIVE_INFINITY;
+        double minLng = Double.POSITIVE_INFINITY;
+        double maxLng = Double.NEGATIVE_INFINITY;
+
+        for (LatLng pt : points) {
+            if (minLat > pt.latitude)
+                minLat = pt.latitude;
+            else if (maxLat < pt.latitude)
+                maxLat = pt.latitude;
+
+            if (minLng > pt.longitude)
+                minLng = pt.longitude;
+            else if (maxLng < pt.longitude)
+                maxLng = pt.longitude;
+        }
+
+        lat1 = minLat;
+        lng1 = minLng;
+        lat2 = maxLat;
+        lng2 = maxLng;
+    }
+
+    public void expand(double factor) {
+        double dlat = (lat2 - lat1) * factor;
+        double dblng = (lng2 - lng1) * factor;
+
+        lat1 -= dlat;
+        lng1 -= dblng;
+        lat2 += dlat;
+        lng2 += dblng;
     }
 
     public void set(double lat1, double lng1, double lat2, double lng2) {

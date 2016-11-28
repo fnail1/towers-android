@@ -123,51 +123,51 @@ public class GameService {
                 }
             }
 
-            int generation = prefs().getMyTowersGeneration() + 1;
-
-            Response<GsonMyTowersResponse> myTowersResponse = api().getMyTowers().execute();
-            if (myTowersResponse.isSuccessful()) {
-                GsonMyTowersResponse myTowers = myTowersResponse.body();
-                if (myTowers.success) {
-                    int totalCount = 0;
-                    for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
-                        if (towersNet.inside.length == 0)
-                            continue;
-                        totalCount += towersNet.inside.length;
-
-                        int sumLevel = 0;
-                        long[] serverIds = new long[towersNet.inside.length];
-                        for (int towerIndex = 0; towerIndex < towersNet.inside.length; towerIndex++) {
-                            GsonTowerInfo towerInfo = towersNet.inside[towerIndex];
-                            sumLevel += towerInfo.level;
-                            serverIds[towerIndex] = towerInfo.id;
-                        }
-
-                        TowerNetwork network = data().towers().selectNetworkByTowers(serverIds);
-                        if (network == null) {
-                            network = new TowerNetwork(towersNet);
-                        } else {
-                            network.merge(towersNet);
-                        }
-                        network.level = sumLevel / towersNet.inside.length;
-                        data().towers().save(network, generation);
-
-                        for (GsonTowerInfo towerInfo : towersNet.inside) {
-                            UserInfo owner = new UserInfo();
-                            owner.merge(towerInfo.user);
-                            data().users().save(owner);
-
-                            Tower tower = new Tower(towerInfo, owner);
-                            tower.network = network._id;
-                            data().towers().save(tower, generation);
-                        }
-                    }
-                    me.towersCount = totalCount;
-                    data().users().save(me);
-                    prefs().setMyTowersGeneration(generation);
-                    data().towers().deleteDeprecated(generation, true);
-                }
-            }
+//            int generation = prefs().getMyTowersGeneration() + 1;
+//
+//            Response<GsonMyTowersResponse> myTowersResponse = api().getMyTowers().execute();
+//            if (myTowersResponse.isSuccessful()) {
+//                GsonMyTowersResponse myTowers = myTowersResponse.body();
+//                if (myTowers.success) {
+//                    int totalCount = 0;
+//                    for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
+//                        if (towersNet.inside.length == 0)
+//                            continue;
+//                        totalCount += towersNet.inside.length;
+//
+//                        int sumLevel = 0;
+//                        long[] serverIds = new long[towersNet.inside.length];
+//                        for (int towerIndex = 0; towerIndex < towersNet.inside.length; towerIndex++) {
+//                            GsonTowerInfo towerInfo = towersNet.inside[towerIndex];
+//                            sumLevel += towerInfo.level;
+//                            serverIds[towerIndex] = towerInfo.id;
+//                        }
+//
+//                        TowerNetwork network = data().towers().selectNetworkByTowers(serverIds);
+//                        if (network == null) {
+//                            network = new TowerNetwork(towersNet);
+//                        } else {
+//                            network.merge(towersNet);
+//                        }
+//                        network.level = sumLevel / towersNet.inside.length;
+//                        data().towers().save(network, generation);
+//
+//                        for (GsonTowerInfo towerInfo : towersNet.inside) {
+//                            UserInfo owner = new UserInfo();
+//                            owner.merge(towerInfo.user);
+//                            data().users().save(owner);
+//
+//                            Tower tower = new Tower(towerInfo, owner);
+//                            tower.network = network._id;
+//                            data().towers().save(tower, generation);
+//                        }
+//                    }
+//                    me.towersCount = totalCount;
+//                    data().users().save(me);
+//                    prefs().setMyTowersGeneration(generation);
+//                    data().towers().deleteDeprecated(generation, true);
+//                }
+//            }
 
         } catch (IOException e) {
             e.printStackTrace();

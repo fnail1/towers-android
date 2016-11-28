@@ -4,6 +4,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import java.lang.reflect.Field;
@@ -142,7 +143,6 @@ public class TowersTable {
         sb.append(tableAlias).append(".").append(ColumnNames.LNG).append(" between ").append(lng1).append(" and ").append(lng2).append(" ");
     }
 
-
     public CursorWrapper<Tower> select(double lat1, double lng1, double lat2, double lng2) {
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
@@ -159,6 +159,10 @@ public class TowersTable {
                 return DbUtils.readObjectFromCursor(cursor, new Tower(), towersCursorMap);
             }
         };
+    }
+
+    public Tower selectByServerId(long serverId) {
+        return DbUtils.readSingle(db, Tower.class, DbUtils.buildSelectById(Tower.class, ColumnNames.SERVER_ID), String.valueOf(serverId));
     }
 
     public ArrayList<TowerNetwork> selectNetworks(MapExtent extent) {
@@ -179,6 +183,7 @@ public class TowersTable {
     }
 
 
+    @NonNull
     public ArrayList<Tower> select(ArrayList<TowerNetwork> networks) {
         if (networks.isEmpty())
             return new ArrayList<>();
@@ -226,6 +231,10 @@ public class TowersTable {
     public TowerNetwork selectNetworkByServerId(long netId) {
         String sql = DbUtils.buildSelectAll(TowerNetwork.class) + " where " + ColumnNames.SERVER_ID + " = ?";
         return DbUtils.readSingle(db, TowerNetwork.class, sql, String.valueOf(netId));
+    }
+
+    public TowerNetwork selectNetworkById(long network) {
+        return DbUtils.readSingle(db, TowerNetwork.class, DbUtils.buildSelectById(TowerNetwork.class), String.valueOf(network));
     }
 
 
