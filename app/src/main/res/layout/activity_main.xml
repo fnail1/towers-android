@@ -30,7 +30,62 @@
         android:id="@+id/map_controls"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible">
+        android:visibility="visible"
+        >
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/padding"
+            >
+            <!--android:background="#33000000"-->
+
+            <TextView
+                android:id="@+id/profile_lv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="LV: 1"/>
+
+            <TextView
+                android:id="@+id/profile_xp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="XP: 1"/>
+
+            <TextView
+                android:id="@+id/profile_hp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="HP: 1"/>
+
+            <TextView
+                android:id="@+id/profile_ar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="AR: 1"/>
+
+            <TextView
+                android:id="@+id/profile_gd"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                tools:text="GD: 1"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/notifications"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:orientation="vertical"
+            android:padding="@dimen/padding">
+
+        </LinearLayout>
 
         <ImageView
             android:id="@+id/settings"
@@ -41,7 +96,21 @@
             android:layout_alignParentRight="true"
             android:layout_margin="8dp"
             android:padding="4dp"
-            android:src="@drawable/ic_settings"
+            android:src="@drawable/ic_settings_black_24dp"
+            android:tint="@color/colorMapCtrl"
+            />
+
+        <ImageView
+            android:id="@+id/game_top"
+            style="@style/MapControlsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_below="@+id/settings"
+            android:layout_margin="8dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_equalizer_black_24dp"
             android:tint="@color/colorMapCtrl"
             />
 
@@ -50,28 +119,97 @@
             style="@style/MapControlsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_above="@+id/all_notifications"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_margin="8dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_place_black_24dp"
+            android:tint="@color/colorMapCtrl"
+            />
+
+        <ImageButton
+            android:id="@+id/all_notifications"
+            style="@style/MapControlsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
             android:layout_margin="8dp"
             android:padding="4dp"
-            android:src="@android:drawable/ic_menu_compass"
+            android:src="@drawable/ic_error_outline_black_24dp"
             android:tint="@color/colorMapCtrl"
             />
+
 
         <ImageButton
             android:id="@+id/build_tower"
             style="@style/MapControlsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_above="@+id/current_location"
-            android:layout_alignParentEnd="true"
-            android:layout_alignParentRight="true"
+            android:layout_above="@+id/build_tower_info"
+            android:layout_centerHorizontal="true"
             android:layout_margin="8dp"
             android:padding="4dp"
-            android:src="@android:drawable/ic_menu_add"
+            android:src="@drawable/ic_build_black_24dp"
             android:tint="@color/colorMapCtrl"
             />
+
+        <ImageButton
+            android:id="@+id/towers_info"
+            style="@style/MapControlsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_margin="8dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_location_city_black_24dp"
+            android:tint="@color/colorMapCtrl"
+            />
+
+        <TextView
+            android:id="@+id/build_tower_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="16dp"
+            android:text="20 Gd, 10 XP"/>
+
+
+        <LinearLayout
+            android:id="@+id/settings_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/padding"
+            android:layout_toLeftOf="@+id/settings"
+            android:background="#66000000"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <Button
+                android:id="@+id/import_data"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="данные приложения"/>
+
+            <Button
+                android:id="@+id/set_location"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="изменить местоположение"/>
+
+            <Button
+                android:id="@+id/logout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="выход"/>
+        </LinearLayout>
 
     </RelativeLayout>
 </FrameLayout>

@@ -22,7 +22,10 @@ import static ru.mail.my.towers.TowersApp.data;
 public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDrawListener {
 
     private final TowersMap towersMap;
+
     private MapObjectClickListener mapObjectClickListener;
+    float gestureStartX;
+    float gestureStartY;
 
     public static TowersMap init(Context context, MapObjectsView view) {
         TowersMap towersMap = new TowersMap(context, view);
@@ -63,9 +66,6 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
 
         super.onDraw(canvas);
     }
-
-    float gestureStartX;
-    float gestureStartY;
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {

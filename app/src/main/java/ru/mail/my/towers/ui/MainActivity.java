@@ -1,6 +1,7 @@
 package ru.mail.my.towers.ui;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
@@ -15,6 +16,7 @@ import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.appindexing.AppIndex;
@@ -35,7 +37,6 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
-import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
@@ -59,7 +60,7 @@ public class MainActivity extends BaseFragmentActivity
 //                   MapObjectsService.MapObjectsLoadingCompleteEventHandler,
                    IMapPopup.IMapActivity,
                    GameService.GameMessageEventHandler,
-                   MapObjectsView.MapObjectClickListener {
+                   MapObjectsView.MapObjectClickListener, GameService.MyProfileEventHandler {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
@@ -80,6 +81,23 @@ public class MainActivity extends BaseFragmentActivity
 
     @BindView(R.id.map_controls)
     View mapControls;
+
+    @BindView(R.id.profile_lv)
+    TextView profileLv;
+    @BindView(R.id.profile_xp)
+    TextView profileXp;
+    @BindView(R.id.profile_hp)
+    TextView profileHp;
+    @BindView(R.id.profile_ar)
+    TextView profileAr;
+    @BindView(R.id.profile_gd)
+    TextView profileGd;
+    @BindView(R.id.build_tower_info)
+    TextView buildTowerInfo;
+
+    @BindView(R.id.settings_panel)
+    View settingsPanel;
+
 
     @BindView(R.id.root)
     protected ViewGroup root;
@@ -118,11 +136,14 @@ public class MainActivity extends BaseFragmentActivity
         }
 //        mapObjects().loadingCompleteEvent.add(this);
         game().gameMessageEvent.add(this);
+        game().myProfileEvent.add(this);
+        onMyProfileChanged(game().me);
     }
 
     @Override
     protected void onPause() {
         game().gameMessageEvent.remove(this);
+        game().myProfileEvent.remove(this);
 //        mapObjects().loadingCompleteEvent.remove(this);
 
         while (!popups.isEmpty())
@@ -155,6 +176,8 @@ public class MainActivity extends BaseFragmentActivity
         if (!popups.isEmpty()) {
             IMapPopup popup = popups.pop();
             popup.close();
+        } else if (settingsPanel.getVisibility() != View.GONE) {
+            settingsPanel.setVisibility(View.GONE);
         } else {
             super.onBackPressed();
         }
@@ -189,7 +212,7 @@ public class MainActivity extends BaseFragmentActivity
     private void onReady() {
         trace();
         location().locationChangedEvent.add(this);
-//        onCameraMove();
+        onCameraMove();
 //        onLocationChanged(location(), location().currentLocation());
     }
 
@@ -248,8 +271,7 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.settings)
     protected void onSettingsClick(View view) {
-        if (checkOrRequestPermissions(RC_ACCESS_STORAGE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE))
-            DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
+        settingsPanel.setVisibility(View.VISIBLE);
     }
 
     @OnClick(R.id.current_location)
@@ -270,6 +292,12 @@ public class MainActivity extends BaseFragmentActivity
         popups.add(popup);
         popup.show(map);
         hideMapControls();
+    }
+
+    @OnClick(R.id.import_data)
+    void onImportDataClick() {
+        if (checkOrRequestPermissions(RC_ACCESS_STORAGE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+            DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
     }
 
     @Override
@@ -313,5 +341,16 @@ public class MainActivity extends BaseFragmentActivity
         popups.add(popup);
 
         hideMapControls();
+    }
+
+    @SuppressLint("SetTextI18n")
+    @Override
+    public void onMyProfileChanged(UserInfo args) {
+        profileLv.setText("LV: " + args.currentLevel);
+        profileXp.setText("XP: " + args.exp + "/" + args.nextExp);
+        profileHp.setText("HP: " + args.health.current + "/" + args.health.max);
+        profileAr.setText("AR: " + Math.round(args.area));
+        profileGd.setText("GD: " + args.gold.current);
+        buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
     }
 }
