@@ -9,15 +9,11 @@ import retrofit2.Response;
 import ru.mail.my.towers.api.model.GsonCreateTowerResponse;
 import ru.mail.my.towers.api.model.GsonGameInfoResponse;
 import ru.mail.my.towers.api.model.GsonGetProfileResponse;
-import ru.mail.my.towers.api.model.GsonMyTowersResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
-import ru.mail.my.towers.api.model.GsonTowerInfo;
-import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
 import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
-import ru.mail.my.towers.diagnostics.Logger;
+import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
-import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.toolkit.ThreadPool;
@@ -25,7 +21,6 @@ import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.data;
-import static ru.mail.my.towers.TowersApp.mapObjects;
 import static ru.mail.my.towers.TowersApp.prefs;
 
 public class GameService {
@@ -42,6 +37,13 @@ public class GameService {
         @Override
         protected void notifyHandler(GameMessageEventHandler handler, GameService sender, String args) {
             handler.onGameNewMessage(args);
+        }
+    };
+
+    public final ObservableEvent<TowersGeoDataChanged, GameService, MapExtent> geoDataChangedEvent = new ObservableEvent<TowersGeoDataChanged, GameService, MapExtent>(this) {
+        @Override
+        protected void notifyHandler(TowersGeoDataChanged handler, GameService sender, MapExtent args) {
+            handler.onTowersGeoDataChanged(args);
         }
     };
 
@@ -196,7 +198,8 @@ public class GameService {
 
                         Tower tower = new Tower(body.tower, me);
                         data().towers().save(tower, prefs().getMyTowersGeneration());
-                        mapObjects().loadMapObjects(latitude - .1, longitude - .1, latitude + .1, longitude + .1);
+                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+                        myProfileEvent.fire(me);
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");
                     }
                 }
@@ -222,5 +225,9 @@ public class GameService {
 
     public interface GameMessageEventHandler {
         void onGameNewMessage(String args);
+    }
+
+    public interface TowersGeoDataChanged {
+        void onTowersGeoDataChanged(MapExtent extent);
     }
 }

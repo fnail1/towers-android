@@ -199,10 +199,11 @@
                 android:text="данные приложения"/>
 
             <Button
-                android:id="@+id/set_location"
+                android:id="@+id/restore_location"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="изменить местоположение"/>
+                android:enabled="false"
+                android:text="местоположение"/>
 
             <Button
                 android:id="@+id/logout"

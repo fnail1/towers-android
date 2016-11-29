@@ -2,6 +2,7 @@ package ru.mail.my.towers.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
@@ -10,6 +11,7 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -35,8 +37,10 @@ import java.util.Stack;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
+import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
@@ -60,7 +64,8 @@ public class MainActivity extends BaseFragmentActivity
 //                   MapObjectsService.MapObjectsLoadingCompleteEventHandler,
                    IMapPopup.IMapActivity,
                    GameService.GameMessageEventHandler,
-                   MapObjectsView.MapObjectClickListener, GameService.MyProfileEventHandler {
+                   MapObjectsView.MapObjectClickListener, GameService.MyProfileEventHandler,
+                   GameService.TowersGeoDataChanged {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
@@ -98,6 +103,9 @@ public class MainActivity extends BaseFragmentActivity
     @BindView(R.id.settings_panel)
     View settingsPanel;
 
+    @BindView(R.id.restore_location)
+    View setLocation;
+
 
     @BindView(R.id.root)
     protected ViewGroup root;
@@ -118,7 +126,12 @@ public class MainActivity extends BaseFragmentActivity
         mapFragment.getMapAsync(this);
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
         mapObjectsView.setMapObjectClickListener(this);
+
+        if (BuildConfig.DEBUG) {
+            mapObjectsView.setMapObjectLongClickListener(this::onMapObjectsViewLongClick);
+        }
     }
+
 
     @Override
     protected void onResume() {
@@ -137,6 +150,7 @@ public class MainActivity extends BaseFragmentActivity
 //        mapObjects().loadingCompleteEvent.add(this);
         game().gameMessageEvent.add(this);
         game().myProfileEvent.add(this);
+        game().geoDataChangedEvent.add(this);
         onMyProfileChanged(game().me);
     }
 
@@ -144,6 +158,8 @@ public class MainActivity extends BaseFragmentActivity
     protected void onPause() {
         game().gameMessageEvent.remove(this);
         game().myProfileEvent.remove(this);
+        game().geoDataChangedEvent.remove(this);
+
 //        mapObjects().loadingCompleteEvent.remove(this);
 
         while (!popups.isEmpty())
@@ -288,16 +304,42 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.build_tower)
     protected void onBuildTowerClick() {
-        CreateTowerPopup popup = new CreateTowerPopup(root, this);
-        popups.add(popup);
-        popup.show(map);
-        hideMapControls();
+        Location gpsLocation = location().currentLocation();
+        if (gpsLocation == null) {
+            Toast.makeText(this, "Местоположение не определено", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        LatLng mapLocation = map.getCameraPosition().target;
+        if (Math.abs(mapLocation.latitude - gpsLocation.getLatitude()) >= Double.MIN_NORMAL ||
+                Math.abs(mapLocation.longitude - gpsLocation.getLongitude()) >= Double.MIN_NORMAL) {
+            onCurrentLocationClick();
+        }
+
+        game().createTower(gpsLocation, game().me.name + " (Башня " + (game().me.towersCount + 1) + ")");
     }
 
     @OnClick(R.id.import_data)
-    void onImportDataClick() {
+    protected void onImportDataClick() {
         if (checkOrRequestPermissions(RC_ACCESS_STORAGE_PERMISSION, Manifest.permission.WRITE_EXTERNAL_STORAGE))
             DebugUtils.importFile(this, Environment.getExternalStorageDirectory());
+    }
+
+    private void onMapObjectsViewLongClick(int x, int y) {
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        vibrator.vibrate(50);
+
+        LatLng latLng = map.getProjection().fromScreenLocation(new Point(x, y));
+        location().setFakeLocation(latLng.latitude, latLng.longitude);
+        setLocation.setEnabled(true);
+        Toast.makeText(this, "Установлено текущее местоположение " + latLng, Toast.LENGTH_SHORT).show();
+    }
+
+    @OnClick(R.id.restore_location)
+    protected void onRestoreLocationClick() {
+        location().restoreLocation();
+        onCurrentLocationClick();
+        settingsPanel.setVisibility(View.GONE);
     }
 
     @Override
@@ -346,11 +388,18 @@ public class MainActivity extends BaseFragmentActivity
     @SuppressLint("SetTextI18n")
     @Override
     public void onMyProfileChanged(UserInfo args) {
-        profileLv.setText("LV: " + args.currentLevel);
-        profileXp.setText("XP: " + args.exp + "/" + args.nextExp);
-        profileHp.setText("HP: " + args.health.current + "/" + args.health.max);
-        profileAr.setText("AR: " + Math.round(args.area));
-        profileGd.setText("GD: " + args.gold.current);
-        buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
+        runOnUiThread(() -> {
+            profileLv.setText("LV: " + (args.currentLevel + 1));
+            profileXp.setText("XP: " + args.exp + "/" + args.nextExp);
+            profileHp.setText("HP: " + args.health.current + "/" + args.health.max);
+            profileAr.setText("AR: " + Math.round(args.area));
+            profileGd.setText("GD: " + args.gold.current);
+            buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
+        });
+    }
+
+    @Override
+    public void onTowersGeoDataChanged(MapExtent extent) {
+        runOnUiThread(this::onCameraMove);
     }
 }

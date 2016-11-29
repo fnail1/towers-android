@@ -22,10 +22,15 @@ import static ru.mail.my.towers.TowersApp.data;
 public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDrawListener {
 
     private final TowersMap towersMap;
+    private final Runnable longClickTask = this::performMapLongClick;
+
 
     private MapObjectClickListener mapObjectClickListener;
-    float gestureStartX;
-    float gestureStartY;
+    private MapObjectLongClickListener mapObjectLongClickListener;
+    private float gestureStartX;
+    private float gestureStartY;
+    private boolean gestureIgnored;
+    private boolean longClickTaskScheduled;
 
     public static TowersMap init(Context context, MapObjectsView view) {
         TowersMap towersMap = new TowersMap(context, view);
@@ -77,12 +82,34 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
             case MotionEvent.ACTION_DOWN:
                 gestureStartX = event.getX();
                 gestureStartY = event.getY();
+                gestureIgnored = false;
+                if (!longClickTaskScheduled) {
+                    Log.d("TOUCH", "POST longClickTask");
+                    longClickTaskScheduled = true;
+                    postDelayed(longClickTask, 1500);
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (Math.abs(gestureStartX - event.getX()) > 5 ||
+                        Math.abs(gestureStartY - event.getY()) > 5) {
+                    Log.d("TOUCH", "REMOVE longClickTask");
+                    removeCallbacks(longClickTask);
+                    gestureIgnored = true;
+                }
                 break;
             case MotionEvent.ACTION_UP:
-                if (Math.abs(gestureStartX - event.getX()) <= 5 &&
+                if (!longClickTaskScheduled && !gestureIgnored &&
+                        gestureStartX >= 0 && gestureStartY >= 0 &&
+                        Math.abs(gestureStartX - event.getX()) <= 5 &&
                         Math.abs(gestureStartY - event.getY()) <= 5) {
                     onTowersMapClick();
                 }
+                // no break;
+            case MotionEvent.ACTION_CANCEL:
+                Log.d("TOUCH", "REMOVE longClickTask");
+                removeCallbacks(longClickTask);
+                longClickTaskScheduled = false;
+                gestureStartX = gestureStartY = -1;
                 break;
         }
 
@@ -138,8 +165,20 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
     }
 
 
+    private void performMapLongClick() {
+        Log.d("TOUCH", "EXECUTE longClickTask");
+        if (!gestureIgnored && mapObjectLongClickListener != null)
+            mapObjectLongClickListener.onMapObjectLongClick(Math.round(gestureStartX), Math.round(gestureStartY));
+        gestureStartX = gestureStartY = -1;
+        longClickTaskScheduled = false;
+    }
+
     public void setMapObjectClickListener(MapObjectClickListener mapObjectClickListener) {
         this.mapObjectClickListener = mapObjectClickListener;
+    }
+
+    public void setMapObjectLongClickListener(MapObjectLongClickListener listener) {
+        this.mapObjectLongClickListener = listener;
     }
 
     @Override
@@ -149,5 +188,9 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
 
     public interface MapObjectClickListener {
         void onMapObjectClick(Tower tower, Rect rect);
+    }
+
+    public interface MapObjectLongClickListener {
+        void onMapObjectLongClick(int x, int y);
     }
 }

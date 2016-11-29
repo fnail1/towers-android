@@ -10,6 +10,10 @@ public class MapExtent {
     public double lat2;
     public double lng2;
 
+    public MapExtent(double lat, double lng) {
+        this(lat - Double.MIN_NORMAL, lng - Double.MIN_NORMAL, lat + Double.MIN_NORMAL, lng + Double.MIN_NORMAL);
+    }
+
     public MapExtent(double lat1, double lng1, double lat2, double lng2) {
         set(lat1, lng1, lat2, lng2);
     }

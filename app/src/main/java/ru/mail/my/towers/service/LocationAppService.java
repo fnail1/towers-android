@@ -10,6 +10,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.widget.FrameLayout;
 
 import com.google.android.gms.location.LocationServices;
 
@@ -33,6 +34,7 @@ public class LocationAppService implements LocationListener, AppStateService.App
 
     private final LocationManager systemService;
     private boolean subscribed = false;
+    private Location fakeLocation;
 
     public LocationAppService(Context context, AppStateService appStateService) {
         systemService = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -41,6 +43,8 @@ public class LocationAppService implements LocationListener, AppStateService.App
 
     @Override
     public void onLocationChanged(Location location) {
+        if (fakeLocation != null)
+            location = fakeLocation;
         Logger.logLocation(location);
         locationChangedEvent.fire(location);
     }
@@ -87,6 +91,9 @@ public class LocationAppService implements LocationListener, AppStateService.App
 
     @Nullable
     public Location currentLocation() {
+        if (fakeLocation != null)
+            return fakeLocation;
+
         if (checkPermission(app())) {
             Location location = new Location("");
             location.setLatitude(55.797287);
@@ -112,6 +119,18 @@ public class LocationAppService implements LocationListener, AppStateService.App
         } else {
             stopObserveLocationChanges();
         }
+    }
+
+    public void setFakeLocation(double latitude, double longitude) {
+        fakeLocation = new Location("");
+        fakeLocation.setLatitude(latitude);
+        fakeLocation.setLongitude(longitude);
+        onLocationChanged(fakeLocation);
+    }
+
+    public void restoreLocation() {
+        fakeLocation = null;
+        onLocationChanged(currentLocation());
     }
 
 

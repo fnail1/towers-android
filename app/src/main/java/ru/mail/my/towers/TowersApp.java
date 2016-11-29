@@ -7,7 +7,6 @@ import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.service.AppStateService;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
-import ru.mail.my.towers.gis.MapObjectsService;
 import ru.mail.my.towers.service.Preferences;
 
 public class TowersApp extends Application {
@@ -18,7 +17,6 @@ public class TowersApp extends Application {
     private AppStateService appStateService;
     private TowersGameApi api;
     private GameService gameService;
-    private MapObjectsService mapObjectsService;
     private AppData data;
 
     public static TowersApp app() {
@@ -49,10 +47,6 @@ public class TowersApp extends Application {
         return instance.gameService;
     }
 
-    public static MapObjectsService mapObjects() {
-        return instance.mapObjectsService;
-    }
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -63,7 +57,6 @@ public class TowersApp extends Application {
         locationService = new LocationAppService(this, appStateService);
         api = TowersGameApi.Builder.createInstance(TowersGameApi.BASE_URL);
         gameService = new GameService(preferences, data);
-        mapObjectsService = new MapObjectsService();
 
         instance = this;
 
