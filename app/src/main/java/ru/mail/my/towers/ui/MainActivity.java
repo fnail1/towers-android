@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -42,6 +41,7 @@ import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
+import ru.mail.my.towers.model.TowerUpdateAction;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
@@ -50,6 +50,7 @@ import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.popups.TowerInfoPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
 
+import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.game;
@@ -106,6 +107,22 @@ public class MainActivity extends BaseFragmentActivity
     @BindView(R.id.restore_location)
     View setLocation;
 
+    @BindView(R.id.tower_controls)
+    View towerControls;
+    @BindView(R.id.destroy_tower)
+    View destroyTower;
+    @BindView(R.id.repair_tower)
+    View repairTower;
+    @BindView(R.id.repair_tower_text)
+    TextView repairTowerText;
+    @BindView(R.id.upgrade_tower)
+    View upgradeTower;
+    @BindView(R.id.upgrade_tower_text)
+    TextView upgradeTowerText;
+    @BindView(R.id.attack_tower)
+    View attackTower;
+    @BindView(R.id.tower_owner_info)
+    View towerOwnerInfo;
 
     @BindView(R.id.root)
     protected ViewGroup root;
@@ -113,6 +130,7 @@ public class MainActivity extends BaseFragmentActivity
     private Marker currentLocationMarker;
     private GoogleApiClient client;
     private boolean mapControlsVisible = true;
+    private Tower selectedTower;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -342,6 +360,31 @@ public class MainActivity extends BaseFragmentActivity
         settingsPanel.setVisibility(View.GONE);
     }
 
+    @OnClick(R.id.destroy_tower)
+    protected void onDestroyTowerClick() {
+        game().destroyTower(selectedTower);
+    }
+
+    @OnClick(R.id.repair_tower)
+    protected void onRepairTowerClick() {
+
+    }
+
+    @OnClick(R.id.upgrade_tower)
+    protected void onUpgradeTowerClick() {
+
+    }
+
+    @OnClick(R.id.attack_tower)
+    protected void onAttackTowerClick() {
+
+    }
+
+    @OnClick(R.id.tower_owner_info)
+    protected void onTowerOwnerInfoClick() {
+
+    }
+
     @Override
     public void onPopupResult(IMapPopup popup) {
         popups.remove(popup);
@@ -377,13 +420,77 @@ public class MainActivity extends BaseFragmentActivity
     }
 
     @Override
-    public void onMapObjectClick(Tower tower, Rect rect) {
-        TowerInfoPopup popup = new TowerInfoPopup(root, this);
-        popup.show(map, tower);
-        popups.add(popup);
+    public void onMapSelectionChanged(Tower tower) {
+        selectedTower = tower;
+        towerControls.animate().cancel();
 
-        hideMapControls();
+        if (tower == null) {
+            if (towerControls.getVisibility() != View.GONE) {
+                animateDisappearance(destroyTower);
+                animateDisappearance(repairTower);
+                animateDisappearance(upgradeTower);
+                animateDisappearance(attackTower);
+                animateDisappearance(towerOwnerInfo);
+                towerControls.animate()
+                        .alpha(0)
+                        .setDuration(500)
+                        .withEndAction(() -> {
+                            towerControls.setAlpha(1);
+                            towerControls.setVisibility(View.GONE);
+                        });
+            }
+        } else {
+            if (towerControls.getVisibility() == View.GONE) {
+                towerControls.setVisibility(View.VISIBLE);
+            }
+            if (tower.my) {
+                animateAppearance(destroyTower, 100);
+                if (tower.health < tower.maxHealth) {
+                    repairTowerText.setText("" + tower.repairCost + " GD");
+                    animateAppearance(repairTower, 150);
+                } else {
+                    repairTower.setVisibility(View.GONE);
+                }
+                if (tower.level < game().me.currentLevel) {
+                    upgradeTowerText.setText("" + tower.updateCost + " GD");
+                    animateAppearance(upgradeTower, 200);
+                } else {
+                    upgradeTower.setVisibility(View.GONE);
+                }
+                attackTower.setVisibility(View.GONE);
+                towerOwnerInfo.setVisibility(View.GONE);
+
+            } else {
+                destroyTower.setVisibility(View.GONE);
+                repairTower.setVisibility(View.GONE);
+                upgradeTower.setVisibility(View.GONE);
+
+                animateAppearance(attackTower, 100);
+                animateAppearance(towerOwnerInfo, 150);
+            }
+        }
     }
+
+
+    private void animateAppearance(View view, int duration) {
+        view.setVisibility(View.VISIBLE);
+        view.setAlpha(0);
+        view.setTranslationX(mapObjectsView.getWidth());
+        view.setTranslationY(0);
+        view.animate()
+                .alpha(1)
+                .translationX(0)
+                .setDuration(duration);
+    }
+
+    private void animateDisappearance(View view) {
+        view.animate()
+                .alpha(0)
+                .translationY(-mapObjectsView.getHeight())
+                .translationX(-mapObjectsView.getWidth() / 2)
+                .setDuration(300);
+    }
+
 
     @SuppressLint("SetTextI18n")
     @Override

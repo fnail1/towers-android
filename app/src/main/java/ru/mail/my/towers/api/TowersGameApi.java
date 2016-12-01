@@ -21,6 +21,7 @@ import retrofit2.http.Query;
 import ru.mail.my.towers.api.model.GsonAuthResponse;
 import ru.mail.my.towers.api.model.GsonAttackResponse;
 import ru.mail.my.towers.api.model.GsonCreateTowerResponse;
+import ru.mail.my.towers.api.model.GsonDestroyTowerResponse;
 import ru.mail.my.towers.api.model.GsonGameInfoResponse;
 import ru.mail.my.towers.api.model.GsonGameStatTopResponse;
 import ru.mail.my.towers.api.model.GsonLogoutResponse;
@@ -132,7 +133,15 @@ public interface TowersGameApi {
      * Башни. Обновление
      */
     @PUT("towers/{towerId}")
-    Call<GsonUpdateTowerResponse> updateTower(@Path("towerId") long towerId, @Query("action") TowerUpdateAction action);
+    @FormUrlEncoded
+    Call<GsonUpdateTowerResponse> updateTower(@Path("towerId") long towerId, @Field("action") TowerUpdateAction action);
+
+    /**
+     * Башни. Обновление
+     */
+    @PUT("towers/{towerId}")
+    @FormUrlEncoded
+    Call<GsonDestroyTowerResponse> destroyTower(@Path("towerId") long towerId, @Field("action") TowerUpdateAction destroy);
 
     /**
      * Башни. Битва. Атаковать

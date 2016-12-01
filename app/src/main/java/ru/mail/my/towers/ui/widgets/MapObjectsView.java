@@ -98,7 +98,7 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                if (!longClickTaskScheduled && !gestureIgnored &&
+                if (!gestureIgnored &&
                         gestureStartX >= 0 && gestureStartY >= 0 &&
                         Math.abs(gestureStartX - event.getX()) <= 5 &&
                         Math.abs(gestureStartY - event.getY()) <= 5) {
@@ -119,9 +119,9 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
     public void onTowersMapClick() {
         TowersMap.GeoRequestResult found = towersMap.requestObjectsAt((int) gestureStartX, (int) gestureStartY, true);
 
+        Tower tower;
         long tid = 0, nid = 0;
         double tdis = Double.POSITIVE_INFINITY;
-        POI tpoi = null;
         if (found.towers.size() > 0) {
             for (int i = 0; i < found.towers.size(); i++) {
                 POI poi = found.towers.valueAt(i);
@@ -131,35 +131,33 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
                 if (tdis > d2) {
                     tdis = d2;
                     tid = found.towers.keyAt(i);
-                    tpoi = poi;
                 }
             }
-            Tower tower = data().towers().selectById(tid);
+            tower = data().towers().selectById(tid);
             towersMap.setSelection(tower._id, tower.network);
-
-            if (mapObjectClickListener != null) {
-                Rect rect = new Rect(
-                        (int) (tpoi.x - tpoi.radius),
-                        (int) (tpoi.y - tpoi.radius),
-                        (int) (tpoi.x - tpoi.radius),
-                        (int) (tpoi.y - tpoi.radius));
-                mapObjectClickListener.onMapObjectClick(tower, rect);
-            }
-        } else if (found.networks.size() > 0) {
-            double ndis = Double.POSITIVE_INFINITY;
-            for (int i = 0; i < found.networks.size(); i++) {
-                POI poi = found.networks.valueAt(i);
-                float dx = poi.x - gestureStartX;
-                float dy = poi.y - gestureStartY;
-                double d = dx * dx + dy * dy;
-                if (ndis > d) {
-                    ndis = d;
-                    nid = found.networks.keyAt(i);
-                }
-            }
-            towersMap.setSelection(0, nid);
         } else {
-            towersMap.setSelection(0, 0);
+            tower = null;
+
+            if (found.networks.size() > 0) {
+                double ndis = Double.POSITIVE_INFINITY;
+                for (int i = 0; i < found.networks.size(); i++) {
+                    POI poi = found.networks.valueAt(i);
+                    float dx = poi.x - gestureStartX;
+                    float dy = poi.y - gestureStartY;
+                    double d = dx * dx + dy * dy;
+                    if (ndis > d) {
+                        ndis = d;
+                        nid = found.networks.keyAt(i);
+                    }
+                }
+                towersMap.setSelection(0, nid);
+            } else {
+                towersMap.setSelection(0, 0);
+            }
+        }
+
+        if (mapObjectClickListener != null) {
+            mapObjectClickListener.onMapSelectionChanged(tower);
         }
         invalidate();
     }
@@ -187,7 +185,7 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
     }
 
     public interface MapObjectClickListener {
-        void onMapObjectClick(Tower tower, Rect rect);
+        void onMapSelectionChanged(Tower tower);
     }
 
     public interface MapObjectLongClickListener {

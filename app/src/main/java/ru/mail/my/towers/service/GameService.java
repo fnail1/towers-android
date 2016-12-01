@@ -7,13 +7,16 @@ import java.net.HttpURLConnection;
 
 import retrofit2.Response;
 import ru.mail.my.towers.api.model.GsonCreateTowerResponse;
+import ru.mail.my.towers.api.model.GsonDestroyTowerResponse;
 import ru.mail.my.towers.api.model.GsonGameInfoResponse;
 import ru.mail.my.towers.api.model.GsonGetProfileResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
+import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
 import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
+import ru.mail.my.towers.model.TowerUpdateAction;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.toolkit.ThreadPool;
@@ -110,7 +113,7 @@ public class GameService {
     private void startSync() {
         try {
             Response<GsonGameInfoResponse> gameInfoResponse = api().getGameInfo().execute();
-            if (gameInfoResponse.isSuccessful()) {
+            if (gameInfoResponse.code() == HttpURLConnection.HTTP_OK) {
                 GsonGameInfoResponse gameInfo = gameInfoResponse.body();
                 if (gameInfo.success) {
                     updateMyProfile(gameInfo.info);
@@ -205,6 +208,32 @@ public class GameService {
                 }
             } catch (IOException e) {
                 gameMessageEvent.fire("Не удалось построить башню из-за сетевой ошибки.");
+            }
+        });
+    }
+
+    public void destroyTower(Tower tower) {
+        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
+            try {
+                Response<GsonDestroyTowerResponse> response = api().destroyTower(tower.serverId, TowerUpdateAction.destroy).execute();
+                if (response.code() != HttpURLConnection.HTTP_OK) {
+                    gameMessageEvent.fire("Башня устояла. Сервер вернул " + response.code());
+                } else {
+                    GsonDestroyTowerResponse body = response.body();
+                    if (!body.success) {
+                        gameMessageEvent.fire("Башня устояла: " + body.error.message);
+                    } else {
+                        me.towersCount--;
+
+                        data().towers().delete(tower._id);
+                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+                        gameMessageEvent.fire("Башня \'" + tower.title + "\' удалена");
+
+                        startSync();
+                    }
+                }
+            } catch (IOException e) {
+                gameMessageEvent.fire("Не удалось удалить башню из-за сетевой ошибки.");
             }
         });
     }

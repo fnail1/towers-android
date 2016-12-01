@@ -102,11 +102,10 @@ public class TowersDataLoader {
             }
 
             prefs().setTowersGeneration(generation);
+            data().towers().deleteDeprecated(generation, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        data().towers().deleteDeprecated(generation, false, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
 
         callback.onTowersDataLoaded(mapExtent);
     }

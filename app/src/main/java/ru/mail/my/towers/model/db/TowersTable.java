@@ -90,32 +90,27 @@ public class TowersTable {
         filterMy(sb, my);
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
-//        sb = new StringBuilder();
-//        sb.append("(select count(*) ")
-//                .append(" from ").append(AppData.TABLE_TOWERS)
-//                .append(" where ").append(ColumnNames.NETWORK).append(" = ").append(AppData.TABLE_TOWER_NETWORKS).append(".").append(ColumnNames.ID)
-//                .append(") = 0");
-//
-//        int delete1 = db.delete(AppData.TABLE_TOWER_NETWORKS, sb.toString(), null);
+        deleteEmptyNetworks();
         int delete1 = 0;
 
         return delete > 0 || delete1 > 0;
     }
 
-    public boolean deleteDeprecated(int generation, boolean my, double lat1, double lng1, double lat2, double lng2) {
+    public int deleteEmptyNetworks() {
+        String whereClause =
+                " (select count(*) " +
+                        "       from " + AppData.TABLE_TOWERS + " t " +
+                        "       where t." + ColumnNames.NETWORK + "=" + AppData.TABLE_TOWER_NETWORKS + "." + ColumnNames.ID + ") = 0\n";
+        return db.delete(AppData.TABLE_TOWER_NETWORKS, whereClause, null);
+    }
+
+    public boolean deleteDeprecated(int generation, double lat1, double lng1, double lat2, double lng2) {
         StringBuilder sb = new StringBuilder();
         sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
-        filterMy(sb, my);
-        sb.append("\n\t and ");
         filterLocation(sb, lat1, lng1, lat2, lng2);
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
-        sb = new StringBuilder();
-        sb.append(ColumnNames.GENERATION).append("<>").append(generation).append(" and \n\t");
-        filterMy(sb, my);
-        sb.append("\n\t and ");
-        filterLocation(sb, lat1, lng1, lat2, lng2);
-        int delete1 = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
+        int delete1 = deleteEmptyNetworks();
 
         return delete > 0 || delete1 > 0;
     }
@@ -239,28 +234,10 @@ public class TowersTable {
         return DbUtils.readSingle(db, Tower.class, DbUtils.buildSelectById(Tower.class), String.valueOf(towerId));
     }
 
-
-    public class MapEnvelopCursor extends CursorWrapper<Object> {
-        private final Field[] towerMap;
-        private final Field[] networkMap;
-
-        public MapEnvelopCursor(Cursor cursor) {
-            super(cursor);
-            towerMap = DbUtils.mapCursorForRawType(cursor, Tower.class, "t");
-            networkMap = DbUtils.mapCursorForRawType(cursor, TowerNetwork.class, "n");
-        }
-
-        @Override
-        public Object get() {
-            return null;
-        }
-
-        public Tower getTower() {
-            return DbUtils.readObjectFromCursor(cursor, new Tower(), towerMap);
-        }
-
-        public TowerNetwork getTowerNetwork() {
-            return DbUtils.readObjectFromCursor(cursor, new TowerNetwork(), networkMap);
-        }
+    public void delete(long id) {
+        db.delete(AppData.TABLE_TOWERS, ColumnNames.ID + "=?", new String[]{String.valueOf(id)});
+        deleteEmptyNetworks();
     }
+
+
 }
