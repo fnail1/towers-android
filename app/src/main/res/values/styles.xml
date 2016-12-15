@@ -8,6 +8,9 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
+
+
     <style name="MapControlsButton">
         <item name="android:textColor">@color/colorMapCtrl</item>
         <item name="android:background">@drawable/bg_ripple_map_ctrl</item>

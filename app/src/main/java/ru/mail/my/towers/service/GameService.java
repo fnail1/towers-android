@@ -238,6 +238,32 @@ public class GameService {
         });
     }
 
+    public void upgradeTower(Tower tower) {
+        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
+            try {
+                Response<GsonUpdateTowerResponse> response = api().updateTower(tower.serverId, TowerUpdateAction.upgrade).execute();
+                if (response.code() != HttpURLConnection.HTTP_OK) {
+                    gameMessageEvent.fire("Ошибка. Сервер вернул " + response.code());
+                } else {
+                    GsonUpdateTowerResponse body = response.body();
+                    if (!body.success) {
+                        gameMessageEvent.fire("Ошибка: " + body.error.message);
+                    } else {
+                        me.towersCount--;
+
+                        data().towers().delete(tower._id);
+                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+                        gameMessageEvent.fire("Башня \'" + tower.title + "\' обновлена");
+
+                        startSync();
+                    }
+                }
+            } catch (IOException e) {
+                gameMessageEvent.fire("Не удалось прокачать башню из-за сетевой ошибки.");
+            }
+        });
+    }
+
     public interface MyProfileEventHandler {
         void onMyProfileChanged(UserInfo args);
     }

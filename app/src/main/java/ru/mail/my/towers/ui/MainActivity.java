@@ -41,16 +41,13 @@ import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Tower;
-import ru.mail.my.towers.model.TowerUpdateAction;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
-import ru.mail.my.towers.ui.popups.TowerInfoPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
 
-import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.game;
@@ -372,7 +369,7 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.upgrade_tower)
     protected void onUpgradeTowerClick() {
-
+        game().upgradeTower(selectedTower);
     }
 
     @OnClick(R.id.attack_tower)
@@ -382,7 +379,7 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.tower_owner_info)
     protected void onTowerOwnerInfoClick() {
-
+        startActivity(new Intent(this,UserProfileActivity.class).putExtra(UserProfileActivity.PARAM_UID, selectedTower.owner));
     }
 
     @Override
