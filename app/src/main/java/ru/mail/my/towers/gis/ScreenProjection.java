@@ -4,6 +4,8 @@ import android.location.Location;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import ru.mail.my.towers.diagnostics.Logger;
+
 public class ScreenProjection {
     private final Location locationBuffer1 = new Location("");
     private final Location locationBuffer2 = new Location("");
@@ -50,6 +52,7 @@ public class ScreenProjection {
 
         scale = Math.sqrt(screenWidth * screenWidth + screenHeight * screenHeight) / locationBuffer1.distanceTo(locationBuffer2);
 
+        Logger.logLocation("SCALE: " + scale);
     }
 
     public int xi(double lat, double lng) {

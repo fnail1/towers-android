@@ -28,6 +28,7 @@ import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
 import ru.mail.my.towers.toolkit.ThreadPool;
 
 public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMapEngine {
+    private static final double SCALE_COME_DOWN = .01;
     private static final double SCALE_DETAILED = 5.0;
     private static final double SCALE_MIDDLE = 2.0;
 
@@ -85,7 +86,7 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
 
         layers[2] = new NetworksPointLayer(context);
         layers[2].maxVisibleScale = SCALE_MIDDLE;
-        layers[2].minVisibleScale = 0;
+        layers[2].minVisibleScale = SCALE_COME_DOWN;
     }
 
     public void onCameraMove(GoogleMap map, int screenWidth, int screenHeight) {

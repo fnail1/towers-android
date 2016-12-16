@@ -19,6 +19,10 @@ public class MapExtent {
     }
 
     public MapExtent(LatLng[] points) {
+        set(points);
+    }
+
+    public void set(LatLng[] points) {
         double minLat = Double.POSITIVE_INFINITY;
         double maxLat = Double.NEGATIVE_INFINITY;
         double minLng = Double.POSITIVE_INFINITY;
@@ -42,16 +46,6 @@ public class MapExtent {
         lng2 = maxLng;
     }
 
-    public void expand(double factor) {
-        double dlat = (lat2 - lat1) * factor;
-        double dblng = (lng2 - lng1) * factor;
-
-        lat1 -= dlat;
-        lng1 -= dblng;
-        lat2 += dlat;
-        lng2 += dblng;
-    }
-
     public void set(double lat1, double lng1, double lat2, double lng2) {
         if (lat1 > lat2) {
             this.lat1 = lat2;
@@ -68,6 +62,16 @@ public class MapExtent {
             this.lng1 = lng1;
             this.lng2 = lng2;
         }
+    }
+
+    public void expand(double factor) {
+        double dlat = (lat2 - lat1) * factor;
+        double dblng = (lng2 - lng1) * factor;
+
+        lat1 -= dlat;
+        lng1 -= dblng;
+        lat2 += dlat;
+        lng2 += dblng;
     }
 
     public boolean intersect(MapExtent env) {
