@@ -18,7 +18,7 @@ import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 
 import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
-import static ru.mail.my.towers.toolkit.collections.Query.query;
+import static ru.mail.my.towers.diagnostics.Logger.logDb;
 
 public class TowersTable {
     private final ThreadLocal<SQLiteStatement> insert;
@@ -90,10 +90,13 @@ public class TowersTable {
         filterMy(sb, my);
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
-        deleteEmptyNetworks();
-        int delete1 = 0;
+        if (delete > 0) {
+            deleteEmptyNetworks();
+        }
 
-        return delete > 0 || delete1 > 0;
+        logDb("deleteDeprecated %d %s: %d objects deleted", generation, my ? "my" : "their", delete);
+
+        return delete > 0;
     }
 
     public int deleteEmptyNetworks() {
@@ -101,7 +104,11 @@ public class TowersTable {
                 " (select count(*) " +
                         "       from " + AppData.TABLE_TOWERS + " t " +
                         "       where t." + ColumnNames.NETWORK + "=" + AppData.TABLE_TOWER_NETWORKS + "." + ColumnNames.ID + ") = 0\n";
-        return db.delete(AppData.TABLE_TOWER_NETWORKS, whereClause, null);
+        int delete = db.delete(AppData.TABLE_TOWER_NETWORKS, whereClause, null);
+
+        logDb("deleteEmptyNetworks where %s: %d objects deleted", whereClause, delete);
+
+        return delete;
     }
 
     public boolean deleteDeprecated(int generation, double lat1, double lng1, double lat2, double lng2) {
@@ -110,9 +117,13 @@ public class TowersTable {
         filterLocation(sb, lat1, lng1, lat2, lng2);
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
-        int delete1 = deleteEmptyNetworks();
+        if (delete > 0) {
+            deleteEmptyNetworks();
+        }
 
-        return delete > 0 || delete1 > 0;
+        logDb("deleteDeprecated %f;%f - %f;%f: %d objects deleted", lat1, lng1, lat2, lng2, delete);
+
+        return delete > 0;
     }
 
     private void filterMy(StringBuilder sb, boolean my) {

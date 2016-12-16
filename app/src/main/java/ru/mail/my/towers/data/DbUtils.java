@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import ru.mail.my.towers.diagnostics.DebugUtils;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.toolkit.Flags32;
 import ru.mail.my.towers.toolkit.collections.Query;
 
@@ -52,6 +53,7 @@ public class DbUtils {
     };
 
     private static Query<Field> iterateFields(Class<?> t) {
+
         Query<Field> query = query(t.getDeclaredFields());
         while ((t = t.getSuperclass()) != Object.class)
             query = query.concat(t.getDeclaredFields());
@@ -77,7 +79,9 @@ public class DbUtils {
         sb.delete(sb.length() - 2, sb.length());
         sb.append(") ");
 
-        return sb.toString();
+        String s = sb.toString();
+        Logger.logDb("buildCreateScript %s", s);
+        return s;
     }
 
 
@@ -246,7 +250,7 @@ public class DbUtils {
 
         sb.delete(sb.length() - 2, sb.length());
 
-        sb.append("\n where ").append(pk).append(" = ?");
+        sb.append("\nwhere ").append(pk).append(" = ?");
 
         return sb.toString();
     }
@@ -305,41 +309,6 @@ public class DbUtils {
                 values.add(value);
             }
             values.add(pk);
-            return values.toArray(new String[values.size()]);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @NonNull
-    public static String[] buildUpdateArgs(@NonNull Object raw, String keyColumn, String key) {
-        if (raw instanceof IDbSerializationHandlers)
-            ((IDbSerializationHandlers) raw).onBeforeSerialization();
-
-        try {
-            ArrayList<String> values = new ArrayList<>();
-            String pk = null;
-            for (Field field : iterateFields(raw.getClass())) {
-                DbColumn column = field.getAnnotation(DbColumn.class);
-                Object v = field.get(raw);
-                if (column != null && (column.primaryKey() || column.equals(keyColumn)))
-                    continue;
-
-                String value;
-                if (v == null) {
-                    value = null;
-                } else if (field.getType().isEnum()) {
-                    value = String.valueOf(((Enum<?>) v).ordinal());
-                } else if (field.getType() == Flags32.class) {
-                    value = String.valueOf(((Flags32) v).getValue());
-                } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                    value = ((boolean) v) ? "1" : "0";
-                } else {
-                    value = String.valueOf(v);
-                }
-                values.add(value);
-            }
-            values.add(key);
             return values.toArray(new String[values.size()]);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
@@ -433,18 +402,6 @@ public class DbUtils {
     }
 
     @NonNull
-    public static <T> ArrayList<T> readToList(@NonNull CursorWrapper<T> cursor) {
-        ArrayList<T> list = new ArrayList<>(cursor.getCount());
-        if (cursor.moveToFirst()) {
-            do {
-                list.add(cursor.get());
-            } while (cursor.moveToNext());
-        }
-
-        return list;
-    }
-
-    @NonNull
     public static <K, T> HashMap<K, T> readToMap(@NonNull Cursor cursor, @NonNull Class<T> rawType) {
         Field[] fields = rawType.getFields();
         for (Field field : fields) {
@@ -505,6 +462,17 @@ public class DbUtils {
             }
         }
 
+        return list;
+    }
+
+    @NonNull
+    public static <T, R extends T> ArrayList<T> readToList(CursorWrapper<R> cursor) {
+        ArrayList<T> list = new ArrayList<T>(cursor.getCount());
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(cursor.get());
+            } while (cursor.moveToNext());
+        }
         return list;
     }
 

@@ -1,8 +1,9 @@
 package ru.mail.my.towers.diagnostics;
 
 import android.location.Location;
-import android.os.SystemClock;
 import android.util.Log;
+
+import java.util.Map;
 
 import okhttp3.logging.HttpLoggingInterceptor;
 import ru.mail.my.towers.BuildConfig;
@@ -11,12 +12,16 @@ public class Logger {
     public static final boolean LOG_ERRORS = true;
     public static final boolean LOG_VERBOSE = BuildConfig.DEBUG;
     public static final boolean LOG_DEBUG = BuildConfig.DEBUG;
+    public static final boolean LOG_DB = LOG_VERBOSE;
+
 
     private static final boolean LOG_LOCATION = LOG_DEBUG;
     public static final boolean LOG_API = LOG_DEBUG;
 
-    private static final String TAG_LOCATION = "location";
+    public static final String TAG_LOCATION = "location";
     public static final String TAG_API = "game_api";
+    public static final String TAG_DB = "DATABASE";
+
 
 
     public static void traceUi(Object caller) {
@@ -101,6 +106,25 @@ public class Logger {
             sb.append(h).append(":");
         sb.append(m % 60).append(":").append(s % 60);
         logLocation(provider + " (" + accuracy + ", " + sb.toString() + ") -> lat: " + lat + ", lon: " + lng + ", alt: " + alt);
+    }
+
+
+    public static void logDb(String message) {
+        if (LOG_DB) {
+            logV(TAG_DB, message);
+        }
+    }
+
+    public static void logDb(String message, Object arg) {
+        if (LOG_DB) {
+            logV(TAG_DB, message, arg);
+        }
+    }
+
+    public static void logDb(String message, Object... args) {
+        if (LOG_DB) {
+            logV(TAG_DB, message, args);
+        }
     }
 
     public static HttpLoggingInterceptor.Logger createApiLogger() {

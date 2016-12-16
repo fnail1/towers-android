@@ -20,7 +20,6 @@ import ru.mail.my.towers.R;
 import ru.mail.my.towers.api.model.GsonAuthResponse;
 import ru.mail.my.towers.api.model.GsonGetProfileResponse;
 import ru.mail.my.towers.api.model.GsonRequestAuthResponse;
-import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.toolkit.ThreadPool;
 
 import static ru.mail.my.towers.TowersApp.api;
