@@ -50,6 +50,7 @@ import ru.mail.my.towers.ui.widgets.MapObjectsView;
 
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
+import static ru.mail.my.towers.TowersApp.data;
 import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.location;
 import static ru.mail.my.towers.TowersApp.prefs;
@@ -120,6 +121,8 @@ public class MainActivity extends BaseFragmentActivity
     View attackTower;
     @BindView(R.id.tower_owner_info)
     View towerOwnerInfo;
+    @BindView(R.id.tower_owner_info_text)
+    TextView towerOwnerInfoText;
 
     @BindView(R.id.root)
     protected ViewGroup root;
@@ -379,11 +382,11 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.tower_owner_info)
     protected void onTowerOwnerInfoClick() {
-        startActivity(new Intent(this,UserProfileActivity.class).putExtra(UserProfileActivity.PARAM_UID, selectedTower.owner));
+        startActivity(new Intent(this, UserProfileActivity.class).putExtra(UserProfileActivity.PARAM_UID, selectedTower.owner));
     }
 
     @OnClick(R.id.logout)
-    protected void onLogoutClick(){
+    protected void onLogoutClick() {
         app().onLogout();
         recreate();
     }
@@ -449,13 +452,13 @@ public class MainActivity extends BaseFragmentActivity
             if (tower.my) {
                 animateAppearance(destroyTower, 100);
                 if (tower.health < tower.maxHealth) {
-                    repairTowerText.setText("" + tower.repairCost + " GD");
+                    repairTowerText.setText("REPAIR (" + tower.repairCost + " GD)");
                     animateAppearance(repairTower, 150);
                 } else {
                     repairTower.setVisibility(View.GONE);
                 }
                 if (tower.level < game().me.currentLevel) {
-                    upgradeTowerText.setText("" + tower.updateCost + " GD");
+                    upgradeTowerText.setText("UPGRADE (" + tower.updateCost + " GD)");
                     animateAppearance(upgradeTower, 200);
                 } else {
                     upgradeTower.setVisibility(View.GONE);
@@ -470,6 +473,7 @@ public class MainActivity extends BaseFragmentActivity
 
                 animateAppearance(attackTower, 100);
                 animateAppearance(towerOwnerInfo, 150);
+                towerOwnerInfoText.setText(data().users().select(selectedTower.owner).name);
             }
         }
     }

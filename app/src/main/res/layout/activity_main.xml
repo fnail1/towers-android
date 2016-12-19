@@ -199,12 +199,11 @@
                 android:background="@drawable/bg_map_button_gray"
                 >
 
-                <ImageView
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_delete_black_24dp"
-                    android:tint="#ffff0000"
+                    android:text="DELETE"
                     />
 
             </FrameLayout>
@@ -224,9 +223,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center_vertical"
-                    android:drawableLeft="@drawable/ic_build_black_24dp"
-                    android:drawableTint="#ff404040"
-                    tools:text="10 HP, 30 GD"
+                    tools:text="REPAIR (10 HP, 30 GD)"
                     />
             </FrameLayout>
 
@@ -246,9 +243,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center_vertical"
-                    android:drawableLeft="@drawable/ic_upgrade"
-                    android:drawableTint="#ff404040"
-                    tools:text="50 GD"
+                    tools:text="UPGRADE (50 GD)"
                     />
             </FrameLayout>
 
@@ -266,8 +261,6 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center_vertical"
-                    android:drawableLeft="@drawable/ic_attack"
-                    android:drawableTint="#ffF0F040"
                     android:text="ATTA-ACK!!1"
                     />
             </FrameLayout>
@@ -282,13 +275,12 @@
                 >
 
                 <TextView
+                    android:id="@+id/tower_owner_info_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center_vertical"
-                    android:drawableLeft="@drawable/ic_human"
-                    android:drawableTint="#ff404040"
-                    tools:text="USER INFO"
+                    android:text="OWNER INFO"
                     />
             </FrameLayout>
         </LinearLayout>
