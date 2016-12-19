@@ -382,6 +382,12 @@ public class MainActivity extends BaseFragmentActivity
         startActivity(new Intent(this,UserProfileActivity.class).putExtra(UserProfileActivity.PARAM_UID, selectedTower.owner));
     }
 
+    @OnClick(R.id.logout)
+    protected void onLogoutClick(){
+        app().onLogout();
+        recreate();
+    }
+
     @Override
     public void onPopupResult(IMapPopup popup) {
         popups.remove(popup);

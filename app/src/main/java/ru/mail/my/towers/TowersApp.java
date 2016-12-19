@@ -8,6 +8,7 @@ import ru.mail.my.towers.service.AppStateService;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.service.Preferences;
+import ru.mail.my.towers.toolkit.ThreadPool;
 
 public class TowersApp extends Application {
 

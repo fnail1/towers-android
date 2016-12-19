@@ -3,6 +3,7 @@ package ru.mail.my.towers.diagnostics;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.support.v4.content.FileProvider;
 
 import java.io.File;
 
@@ -26,7 +27,9 @@ public class DebugUtils {
 
         Intent sendIntent = new Intent();
         sendIntent.setAction(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(dst));
+        Uri uri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".provider", dst);
+
+        sendIntent.putExtra(Intent.EXTRA_STREAM, uri);
         sendIntent.setType("application/octet-stream");
         context.startActivity(sendIntent);
     }
