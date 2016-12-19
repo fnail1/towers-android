@@ -8,11 +8,11 @@ import ru.mail.my.towers.model.TowerNetwork;
 
 public class NetworkPoint extends Point {
     public Paint paint;
-    public Rect iconRect;
-    public Rect levelRect;
-    public String levelText;
-    public int levelLeft;
-    public int levelBottom;
-    public TextPaint levelTextPaint;
+    public Rect symbolRect;
+    public Rect textRect;
+    public String text;
+    public int textLeft;
+    public int textBottom;
+    public TextPaint textPaint;
     public TowerNetwork network;
 }

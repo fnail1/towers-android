@@ -20,7 +20,7 @@ public class TowerNetwork extends AbsRow {
     /**
      * уровень сети (кластера) - среднее арифметическое уровня всех башен в сети
      */
-    public int level;
+    public float level;
 
     public long serverId;
     public double lat;

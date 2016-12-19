@@ -28,9 +28,9 @@ import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
 import ru.mail.my.towers.toolkit.ThreadPool;
 
 public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMapEngine {
-    private static final double SCALE_COME_DOWN = .01;
     private static final double SCALE_DETAILED = 5.0;
-    private static final double SCALE_MIDDLE = 2.0;
+    //    private static final double SCALE_MIDDLE = 2.0;
+    private static final double SCALE_COME_DOWN = .01;
 
     private static final ScreenDataObjects EMPTY_SCREEN_DATA;
 
@@ -78,15 +78,19 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
 
         layers[0] = new TowersPolygonLayer(context);
         layers[0].maxVisibleScale = Double.POSITIVE_INFINITY;
-        layers[0].minVisibleScale = SCALE_MIDDLE;
+        layers[0].minVisibleScale = SCALE_DETAILED;
+        layers[0].selectable = true;
 
         layers[1] = new TowersPointLayer(context);
         layers[1].maxVisibleScale = Double.POSITIVE_INFINITY;
         layers[1].minVisibleScale = SCALE_DETAILED;
+        layers[1].selectable = true;
 
         layers[2] = new NetworksPointLayer(context);
-        layers[2].maxVisibleScale = SCALE_MIDDLE;
+        layers[2].maxVisibleScale = SCALE_DETAILED;
         layers[2].minVisibleScale = SCALE_COME_DOWN;
+        layers[2].selectable = false;
+
     }
 
     public void onCameraMove(GoogleMap map, int screenWidth, int screenHeight) {
@@ -211,6 +215,9 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
     public GeoRequestResult requestObjectsAt(int x, int y, boolean visibleOnly) {
         GeoRequestResult out = new GeoRequestResult();
         for (Layer layer : layers) {
+            if (!layer.selectable)
+                continue;
+
             if (!layer.isVisible(screenProjection.scale)) {
                 if (visibleOnly)
                     continue;

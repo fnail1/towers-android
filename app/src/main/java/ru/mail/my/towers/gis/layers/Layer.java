@@ -11,6 +11,7 @@ import ru.mail.my.towers.gis.TowersMap;
 public abstract class Layer {
     public double minVisibleScale;
     public double maxVisibleScale;
+    public boolean selectable;
 
     public boolean isVisible(double scale) {
         return minVisibleScale <= scale && scale < maxVisibleScale;

@@ -144,7 +144,7 @@ public class GameService {
                             continue;
                         totalCount += towersNet.inside.length;
 
-                        int sumLevel = 0;
+                        float sumLevel = 0;
                         long[] serverIds = new long[towersNet.inside.length];
                         for (int towerIndex = 0; towerIndex < towersNet.inside.length; towerIndex++) {
                             GsonTowerInfo towerInfo = towersNet.inside[towerIndex];

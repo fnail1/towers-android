@@ -7,6 +7,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.util.LongSparseArray;
 import android.text.TextPaint;
 
+import java.util.Locale;
+
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.gis.IMapEngine;
 import ru.mail.my.towers.gis.MapExtent;
@@ -61,29 +63,35 @@ public class NetworksPointLayer extends PointLayer {
         int y = projection.yi(network.lat, network.lng);
 
         NetworkPoint symbol = new NetworkPoint();
+
         symbol.network = network;
         symbol.paint = engine.getPaint(pointColor);
-        symbol.levelText = String.valueOf(network.level + 1);
-        symbol.levelRect = new Rect();
-        symbol.levelTextPaint = textPaint;
-        textPaint.getTextBounds(symbol.levelText, 0, symbol.levelText.length(), symbol.levelRect);
-        symbol.iconRect = new Rect();
-        int sz = iconWidth / 2;
-        symbol.iconRect.left = x - sz;
-        symbol.iconRect.top = y - sz;
-        symbol.iconRect.right = x + sz;
-        symbol.iconRect.bottom = y + sz;
-        symbol.hitArea = symbol.iconRect;
-        symbol.levelLeft = symbol.iconRect.left + (sz - symbol.levelRect.width() / 2) - symbol.levelRect.left;
-        symbol.levelBottom = symbol.iconRect.bottom - (sz - symbol.levelRect.height() / 2) + symbol.levelRect.bottom;
+
+        float level = Math.round((network.level + 1) * 100) / 100;
+        symbol.text = String.format(Locale.getDefault(), "%d (%.2f)", network.count, level);
+        symbol.textRect = new Rect();
+        symbol.textPaint = textPaint;
+
+        textPaint.getTextBounds(symbol.text, 0, symbol.text.length(), symbol.textRect);
+
+        symbol.symbolRect = new Rect();
+        int width = Math.max(symbol.textRect.width() + 2 * iconWidth / 3, iconWidth) / 2;
+        int height = iconWidth / 2;
+        symbol.symbolRect.left = x - width;
+        symbol.symbolRect.top = y - height;
+        symbol.symbolRect.right = x + width;
+        symbol.symbolRect.bottom = y + height;
+        symbol.hitArea = symbol.symbolRect;
+        symbol.textLeft = symbol.symbolRect.left + (width - symbol.textRect.width() / 2) - symbol.textRect.left;
+        symbol.textBottom = symbol.symbolRect.bottom - (height - symbol.textRect.height() / 2) - symbol.textRect.bottom;
         return symbol;
     }
 
     @Override
     public void draw(IMapEngine engine, Canvas canvas) {
         for (NetworkPoint point : points) {
-            canvas.drawRect(point.iconRect, point.paint);
-            canvas.drawText(point.levelText, point.levelLeft, point.levelBottom, point.levelTextPaint);
+            canvas.drawRect(point.symbolRect, point.paint);
+            canvas.drawText(point.text, point.textLeft, point.textBottom, point.textPaint);
         }
     }
 

@@ -61,7 +61,7 @@ public class TowersDataLoader {
                 }
 
                 double lat = 0, lng = 0;
-                int level = 0;
+                float level = 0;
 
                 for (GsonTowerInfo towerInfo : networkInfo.towers) {
                     lat += towerInfo.lat;

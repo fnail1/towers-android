@@ -34,7 +34,7 @@ public class TowersPolygonLayer extends PolygonLayer {
             return;
 
         this.projection = projection;
-        LongSparseArray<TowerNetwork> selectedNetworks = engine.getSelectedNetworks();
+//        LongSparseArray<TowerNetwork> selectedNetworks = engine.getSelectedNetworks();
         SparseArray<TowerCircle> circles = new SparseArray<>();
 
 
@@ -42,10 +42,8 @@ public class TowersPolygonLayer extends PolygonLayer {
             int x = projection.xi(tower.lat, tower.lng);
             int y = projection.yi(tower.lat, tower.lng);
             float radius = (float) (tower.radius * projection.scale);
-            boolean selectedNetwork = selectedNetworks.get(tower.network) != null;
-            int circleColor = selectedNetwork
-                    ? 0x9900ffff
-                    : 0x66000000 + (tower.color & 0x00ffffff);
+//            boolean selectedNetwork = selectedNetworks.get(tower.network) != null;
+            int circleColor = 0x66000000 + (tower.color & 0x00ffffff);
 
             TowerCircle circle = circles.get(circleColor);
             if (circle == null) {
