@@ -108,7 +108,7 @@ public class NetworksPointLayer extends PointLayer {
     @Override
     public void requestData(TowersMap towersMap, MapExtent mapExtent, ScreenDataObjects dataObjects) {
         if (dataObjects.networks == null) {
-            dataObjects.networks = data().towers().selectNetworks(mapExtent);
+            dataObjects.networks = data().networks().select(mapExtent);
         }
     }
 }

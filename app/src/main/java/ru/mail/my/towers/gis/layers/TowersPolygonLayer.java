@@ -93,7 +93,7 @@ public class TowersPolygonLayer extends PolygonLayer {
     @Override
     public void requestData(TowersMap towersMap, MapExtent mapExtent, ScreenDataObjects dataObjects) {
         if (dataObjects.networks == null) {
-            dataObjects.networks = data().towers().selectNetworks(mapExtent);
+            dataObjects.networks = data().networks().select(mapExtent);
         }
 
         if (dataObjects.towers == null) {

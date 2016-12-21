@@ -50,14 +50,14 @@ public class TowersDataLoader {
                 for (GsonTowerInfo towerInfo : networkInfo.towers) {
                     Tower tower = data().towers().selectByServerId(towerInfo.id);
                     if (tower != null) {
-                        network = data().towers().selectNetworkById(tower.network);
+                        network = data().networks().selectById(tower.network);
                         break;
                     }
                 }
 
                 if (network == null) {
                     network = new TowerNetwork();
-                    data().towers().save(network, generation);
+                    data().networks().save(network, generation);
                 }
 
                 double lat = 0, lng = 0;
@@ -88,7 +88,7 @@ public class TowersDataLoader {
                 network.lng = closest.lng;
                 network.level = level / networkInfo.towers.length;
                 network.count = networkInfo.towers.length;
-                data().towers().save(network, generation);
+                data().networks().save(network, generation);
 
                 for (GsonTowerInfo towerInfo : networkInfo.towers) {
                     UserInfo owner = new UserInfo();

@@ -28,6 +28,10 @@ public abstract class CursorWrapper<T> implements Closeable {
         cursor.close();
     }
 
-    public abstract T get();
+    public final T get() {
+        return get(cursor);
+    }
+
+    protected abstract T get(Cursor cursor);
 
 }

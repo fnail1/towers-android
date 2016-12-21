@@ -18,12 +18,14 @@ public class AppData {
     private final SQLiteDatabase db;
     private final TowersTable towers;
     private final UsersTable users;
+    private final NetworksTable networks;
 
     public AppData(Context context, String userId) {
         SQLiteOpenHelper helper = new AppDataSQLiteOpenHelper(context, normalizeDbName(userId));
         db = helper.getWritableDatabase();
         towers = new TowersTable(db);
         users = new UsersTable(db);
+        networks = new NetworksTable(db);
     }
 
     public TowersTable towers() {
@@ -32,6 +34,10 @@ public class AppData {
 
     public UsersTable users() {
         return users;
+    }
+
+    public NetworksTable networks() {
+        return networks;
     }
 
     public static String normalizeDbName(String userId) {

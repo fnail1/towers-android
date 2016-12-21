@@ -152,14 +152,14 @@ public class GameService {
                             serverIds[towerIndex] = towerInfo.id;
                         }
 
-                        TowerNetwork network = data().towers().selectNetworkByTowers(serverIds);
+                        TowerNetwork network = data().networks().selectByTowers(serverIds);
                         if (network == null) {
                             network = new TowerNetwork(towersNet);
                         } else {
                             network.merge(towersNet);
                         }
                         network.level = sumLevel / towersNet.inside.length;
-                        data().towers().save(network, generation);
+                        data().networks().save(network, generation);
 
                         for (GsonTowerInfo towerInfo : towersNet.inside) {
                             UserInfo owner = new UserInfo();

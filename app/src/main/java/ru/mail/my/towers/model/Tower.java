@@ -102,16 +102,37 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
     }
 
     @Override
-    public int hashCode() {
-        return (int) (serverId ^ (serverId >>> 32));
-    }
-
-    @Override
     public void onBeforeSerialization() {
         my = owner == game().me._id;
     }
 
     @Override
     public void onAfterDeserialization() {
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (serverId ^ (serverId >>> 32));
+    }
+
+    @Override
+    public String toString() {
+        return "Tower{" +
+                "serverId=" + serverId +
+                ", network=" + network +
+                ", lat=" + lat +
+                ", lng=" + lng +
+//                ", radius=" + radius +
+                ", title='" + title + '\'' +
+//                ", level=" + level +
+//                ", health=" + health +
+//                ", maxHealth=" + maxHealth +
+//                ", color=" + color +
+//                ", goldGain=" + goldGain +
+//                ", updateCost=" + updateCost +
+//                ", repairCost=" + repairCost +
+                ", my=" + my +
+                ", owner=" + owner +
+                '}';
     }
 }
