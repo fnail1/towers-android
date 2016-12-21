@@ -39,7 +39,7 @@ public class Flags32 implements Parcelable{
         }
     };
 
-    public int getValue() {
+    public int get() {
         return mValue;
     }
 

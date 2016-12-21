@@ -14,6 +14,8 @@ public @interface DbColumn {
 
     boolean notNull() default false;
 
+    boolean nullIfDefault() default false;
+
     ConflictAction onNullConflict() default ConflictAction.FAIL;
 
     boolean unique() default false;

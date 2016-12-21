@@ -29,4 +29,5 @@ public abstract class CursorWrapper<T> implements Closeable {
     }
 
     public abstract T get();
+
 }

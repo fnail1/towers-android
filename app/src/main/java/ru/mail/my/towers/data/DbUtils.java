@@ -20,13 +20,13 @@ import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.toolkit.Flags32;
 import ru.mail.my.towers.toolkit.collections.Query;
 
+import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
 import static ru.mail.my.towers.toolkit.collections.Query.query;
 
 
 public class DbUtils {
 
     public static final String COLUMN_ID = "_id";
-
 
     private static final HashMap<Class<?>, SQLiteType> TYPE_MAP = new HashMap<Class<?>, SQLiteType>() {
         {
@@ -52,8 +52,7 @@ public class DbUtils {
         }
     };
 
-    private static Query<Field> iterateFields(Class<?> t) {
-
+    public static Query<Field> iterateFields(Class<?> t) {
         Query<Field> query = query(t.getDeclaredFields());
         while ((t = t.getSuperclass()) != Object.class)
             query = query.concat(t.getDeclaredFields());
@@ -140,7 +139,6 @@ public class DbUtils {
         }
     }
 
-
     @NonNull
     public static String getColumnName(@NonNull Field field) {
         return getColumnName(field, field.getAnnotation(DbColumn.class));
@@ -201,32 +199,15 @@ public class DbUtils {
         if (raw instanceof IDbSerializationHandlers)
             ((IDbSerializationHandlers) raw).onBeforeSerialization();
 
-        Query<String> query = iterateFields(raw.getClass()).where(field -> {
+        ArrayList<String> list = new ArrayList<>(raw.getClass().getDeclaredFields().length);
+        for (Field field : iterateFields(raw.getClass())) {
             DbColumn column = field.getAnnotation(DbColumn.class);
-            return column == null || !column.primaryKey();
-        }).select(field -> {
-            try {
-                Object value = field.get(raw);
+            if (column != null && column.primaryKey())
+                continue;
 
-                if (value == null)
-                    return null;
-
-                if (field.getType().isEnum())
-                    return String.valueOf(((Enum<?>) value).ordinal());
-
-                if (field.getType() == Flags32.class)
-                    return String.valueOf(((Flags32) value).getValue());
-
-                if (field.getType() == boolean.class || field.getType() == Boolean.class)
-                    return ((boolean) value) ? "1" : "0";
-
-
-                return String.valueOf(value);
-            } catch (IllegalAccessException e) {
-                return "error";
-            }
-        });
-        List<String> list = query.toList();
+            String value = getFieldValueAsString(raw, field, column);
+            list.add(value);
+        }
         return list.toArray(new String[list.size()]);
     }
 
@@ -278,6 +259,23 @@ public class DbUtils {
         return sb.toString();
     }
 
+    public static <T> String buildDelete(Class<T> rawType) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("delete from  ");
+        sb.append(getTableName(rawType));
+        sb.append(" where ");
+
+        for (Field field : iterateFields(rawType)) {
+            DbColumn column = field.getAnnotation(DbColumn.class);
+            if (column != null && column.primaryKey()) {
+                sb.append(getColumnName(field, column));
+                sb.append(" = ? ");
+                return sb.toString();
+            }
+        }
+        sb.append("_id = ? ");
+        return sb.toString();
+    }
 
     @NonNull
     public static String[] buildUpdateArgs(@NonNull Object raw) {
@@ -289,23 +287,11 @@ public class DbUtils {
             String pk = null;
             for (Field field : iterateFields(raw.getClass())) {
                 DbColumn column = field.getAnnotation(DbColumn.class);
-                Object v = field.get(raw);
                 if (column != null && column.primaryKey()) {
-                    pk = v.toString();
+                    pk = field.get(raw).toString();
                     continue;
                 }
-                String value;
-                if (v == null) {
-                    value = null;
-                } else if (field.getType().isEnum()) {
-                    value = String.valueOf(((Enum<?>) v).ordinal());
-                } else if (field.getType() == Flags32.class) {
-                    value = String.valueOf(((Flags32) v).getValue());
-                } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                    value = ((boolean) v) ? "1" : "0";
-                } else {
-                    value = String.valueOf(v);
-                }
+                String value = getFieldValueAsString(raw, field, column);
                 values.add(value);
             }
             values.add(pk);
@@ -313,6 +299,35 @@ public class DbUtils {
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Nullable
+    private static String getFieldValueAsString(@NonNull Object raw, Field field, DbColumn column) {
+        try {
+            String value;
+            if (field.getType().isEnum()) {
+                value = String.valueOf(((Enum<?>) field.get(raw)).ordinal());
+            } else if (field.getType() == Flags32.class) {
+                value = String.valueOf(((Flags32) field.get(raw)).get());
+            } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
+                value = field.getBoolean(raw) ? "1" : "0";
+            } else if (shouldReplaceZeroWithNull(raw, field, column))
+                value = null;
+            else {
+                Object obj = field.get(raw);
+                value = obj == null ? null : obj.toString();
+            }
+
+            return value;
+        } catch (IllegalAccessException e) {
+            return "error";
+        }
+    }
+
+    private static boolean shouldReplaceZeroWithNull(@NonNull Object raw, Field field, DbColumn column) throws IllegalAccessException {
+        return (column != null && column.unique() || field.getAnnotation(DbForeignKey.class) != null)
+                && ((field.getType() == long.class && field.getLong(raw) == 0L)
+                || (field.getType() == int.class && field.getInt(raw) == 0));
     }
 
     public static void buildComplexColumnNames(@NonNull Class<?> rawType, String tableAlias, @NonNull StringBuilder out) {
@@ -438,10 +453,10 @@ public class DbUtils {
             else
                 return null;
         } catch (InstantiationException e) {
-            DebugUtils.safeThrow(e);
+            safeThrow(e);
             return null;
         } catch (IllegalAccessException e) {
-            DebugUtils.safeThrow(e);
+            safeThrow(e);
             return null;
         } finally {
             cursor.close();
@@ -465,6 +480,25 @@ public class DbUtils {
         return list;
     }
 
+
+    public static <T> LongSparseArray<T> readToLongSparseArray(CursorWrapper<T> cursor, Field keyColumn) {
+        LongSparseArray<T> list = new LongSparseArray<>(cursor.getCount());
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    T obj = cursor.get();
+                    long key = keyColumn.getLong(obj);
+                    list.put(key, obj);
+                } while (cursor.moveToNext());
+            }
+        } catch (IllegalAccessException e) {
+            safeThrow(e);
+        } finally {
+            cursor.close();
+        }
+        return list;
+    }
+
     @NonNull
     public static <T, R extends T> ArrayList<T> readToList(CursorWrapper<R> cursor) {
         ArrayList<T> list = new ArrayList<T>(cursor.getCount());
@@ -476,7 +510,7 @@ public class DbUtils {
         return list;
     }
 
-    public static int count(SQLiteDatabase db, String tableName) {
+    public static long count(SQLiteDatabase db, String tableName) {
         Cursor cursor = db.rawQuery(String.format("select count(*) from %s", tableName), null);
         try {
             return cursor.moveToFirst() ? cursor.getInt(0) : 0;
@@ -489,6 +523,15 @@ public class DbUtils {
         Cursor cursor = db.rawQuery(query, args);
         try {
             return cursor.moveToFirst() ? cursor.getInt(0) : 0;
+        } finally {
+            cursor.close();
+        }
+    }
+
+    public static long longCount(SQLiteDatabase db, String query, String... args) {
+        Cursor cursor = db.rawQuery(query, args);
+        try {
+            return cursor.moveToFirst() ? cursor.getLong(0) : 0;
         } finally {
             cursor.close();
         }
@@ -582,6 +625,22 @@ public class DbUtils {
         }
     }
 
+    public static void join(StringBuilder sb, String fktable, final String fkalias, String fkcolumn, final String pktable, String pkcolumn) {
+        sb.append("join ").append(fktable).append(" " + fkalias + " on " + fkalias + ".").append(fkcolumn).append("=" + pktable + ".").append(pkcolumn).append("\n");
+    }
+
+    private static boolean checkTransient(Field field) {
+        int modifiers = field.getModifiers();
+
+        if (Modifier.isTransient(modifiers))
+            return false;
+
+        if (Modifier.isStatic(modifiers))
+            return false;
+
+        return !Modifier.isFinal(modifiers) || field.getType() == Flags32.class;
+    }
+
     public static class CursorReader<T> implements Iterable<T> {
         private final Cursor cursor;
         private final Field[] fields;
@@ -631,25 +690,10 @@ public class DbUtils {
                 }
             };
         }
-
-    }
-
-
-    private static boolean checkTransient(Field field) {
-        int modifiers = field.getModifiers();
-
-        if (Modifier.isTransient(modifiers))
-            return false;
-
-        if (Modifier.isStatic(modifiers))
-            return false;
-
-        return !Modifier.isFinal(modifiers) || field.getType() == Flags32.class;
     }
 
     public enum SQLiteType {
         INTEGER, REAL, TEXT, BLOB
     }
-
 
 }
