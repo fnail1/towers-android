@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ThreadPool {
     public static final Handler UI = new Handler(Looper.getMainLooper());
-    public static final ThreadPoolExecutor DB = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<Runnable>());
+    public static final ThreadPoolExecutor DB = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
     public static final PriorityExecutors QUICK_EXECUTORS = new PriorityExecutors(Runtime.getRuntime().availableProcessors());
     public static final PriorityExecutors SLOW_EXECUTORS = new PriorityExecutors(4);
 

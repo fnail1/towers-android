@@ -48,7 +48,12 @@
         <activity android:name=".ui.EditProfileActivity">
         </activity>
 
-        <activity android:name=".ui.UserProfileActivity"
+        <activity
+            android:name=".ui.UserProfileActivity"
+            android:theme="@style/Theme.AppCompat.Light"/>
+
+        <activity
+            android:name=".ui.mytowers.MyTowersActivity"
             android:theme="@style/Theme.AppCompat.Light"/>
 
 

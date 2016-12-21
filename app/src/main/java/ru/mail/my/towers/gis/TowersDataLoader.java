@@ -14,6 +14,7 @@ import ru.mail.my.towers.toolkit.ThreadPool;
 
 import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.data;
+import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.prefs;
 
 public class TowersDataLoader {
@@ -88,6 +89,7 @@ public class TowersDataLoader {
                 network.lng = closest.lng;
                 network.level = level / networkInfo.towers.length;
                 network.count = networkInfo.towers.length;
+                network.my = networkInfo.towers[0].user.id == game().me.serverId;
                 data().networks().save(network, generation);
 
                 for (GsonTowerInfo towerInfo : networkInfo.towers) {

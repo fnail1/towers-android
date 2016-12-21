@@ -159,6 +159,7 @@ public class GameService {
                             network.merge(towersNet);
                         }
                         network.level = sumLevel / towersNet.inside.length;
+                        network.my = true;
                         data().networks().save(network, generation);
 
                         for (GsonTowerInfo towerInfo : towersNet.inside) {

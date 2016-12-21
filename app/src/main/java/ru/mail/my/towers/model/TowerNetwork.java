@@ -27,6 +27,7 @@ public class TowerNetwork extends AbsRow {
     public double lng;
     public int count;
     public int color;
+    public boolean my;
 
 
     public TowerNetwork() {

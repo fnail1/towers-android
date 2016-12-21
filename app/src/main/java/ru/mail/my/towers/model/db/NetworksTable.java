@@ -3,8 +3,10 @@ package ru.mail.my.towers.model.db;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 
+import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.ColumnNames;
@@ -14,8 +16,12 @@ import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
 import static ru.mail.my.towers.diagnostics.Logger.logDb;
 
 public class NetworksTable extends SQLiteCommands<TowerNetwork> {
+
+    private final String selectById;
+
     public NetworksTable(SQLiteDatabase db) {
         super(db, TowerNetwork.class);
+        selectById = DbUtils.buildSelectById(TowerNetwork.class, ColumnNames.IS_MY);
     }
 
     public long save(TowerNetwork network, int generation) {
@@ -93,6 +99,25 @@ public class NetworksTable extends SQLiteCommands<TowerNetwork> {
             if (update(obj) != 1)
                 safeThrow(new Exception("update failed TowerNetwork.id = " + id));
             return id;
+        }
+    }
+
+    public ArrayList<TowerNetwork> selectMy() {
+        Cursor cursor = db.rawQuery(selectById, new String[]{"1"});
+        CursorWrapper<TowerNetwork> wrapper = new CursorWrapper<TowerNetwork>(cursor) {
+
+            private Field[] map = DbUtils.mapCursorForRawType(cursor, TowerNetwork.class, null);
+
+            @Override
+            protected TowerNetwork get(Cursor cursor) {
+                return DbUtils.readObjectFromCursor(cursor, new TowerNetwork(), map);
+            }
+        };
+
+        try {
+            return DbUtils.readToList(wrapper);
+        } finally {
+            wrapper.close();
         }
     }
 }
