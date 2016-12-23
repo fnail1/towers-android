@@ -8,6 +8,7 @@ import android.support.annotation.Nullable;
 
 import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.data.DbUtils;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.model.UserInfo;
@@ -24,7 +25,7 @@ public class AppDataSQLiteOpenHelper extends SQLiteOpenHelper {
 
     @Nullable
     private static SQLiteDatabase.CursorFactory getCursorFactory() {
-        if (!BuildConfig.DEBUG)
+        if (!Logger.LOG_DB)
             return null;
 
         return (db, masterQuery, editTable, query) -> {

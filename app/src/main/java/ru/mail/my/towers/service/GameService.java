@@ -269,14 +269,13 @@ public class GameService {
                         gameMessageEvent.fire("Башня не построена: " + body.error.message);
                     } else {
                         me.towersCount++;
-                        me.merge(body.userInfo);
                         me.merge(body.tower.user);
-                        data().users.save(me);
 
                         Tower tower = new Tower(body.tower, me);
                         data().towers.save(tower, prefs().getMyTowersGeneration());
+                        updateMyProfile(body.userInfo);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-                        myProfileEvent.fire(me);
+
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");
                     }
                 }

@@ -10,6 +10,7 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -80,6 +81,7 @@ public class MainActivity extends BaseFragmentActivity
     private final Location center = new Location("");
     private final Point point = new Point();
     private final Stack<IMapPopup> popups = new Stack<>();
+    private final Handler handler = new Handler();
 
     private GoogleMap map;
 
@@ -174,11 +176,13 @@ public class MainActivity extends BaseFragmentActivity
         game().gameMessageEvent.add(this);
         game().myProfileEvent.add(this);
         game().geoDataChangedEvent.add(this);
-        onMyProfileChanged(game().me);
+        updateProfileLoop();
     }
 
     @Override
     protected void onPause() {
+        handler.removeCallbacksAndMessages(null);
+
         game().gameMessageEvent.remove(this);
         game().myProfileEvent.remove(this);
         game().geoDataChangedEvent.remove(this);
@@ -517,6 +521,11 @@ public class MainActivity extends BaseFragmentActivity
                 .setDuration(300);
     }
 
+    private void updateProfileLoop() {
+        onMyProfileChanged(game().me);
+        handler.postDelayed(this::updateProfileLoop, 1 * 1000);
+    }
+
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -524,9 +533,9 @@ public class MainActivity extends BaseFragmentActivity
         runOnUiThread(() -> {
             profileLv.setText("LV: " + (args.currentLevel + 1));
             profileXp.setText("XP: " + args.exp + "/" + args.nextExp);
-            profileHp.setText("HP: " + args.health.current + "/" + args.health.max);
+            profileHp.setText("HP: " + args.currentHealth() + "/" + args.health.max);
             profileAr.setText("AR: " + Math.round(args.area));
-            profileGd.setText("GD: " + args.gold.current);
+            profileGd.setText("GD: " + args.currentGold());
             buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
         });
     }

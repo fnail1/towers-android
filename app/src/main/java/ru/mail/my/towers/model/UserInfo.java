@@ -7,6 +7,8 @@ import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.data.IDbSerializationHandlers;
 import ru.mail.my.towers.model.db.AppData;
 
+import static ru.mail.my.towers.TowersApp.appState;
+
 @DbTable(name = AppData.TABLE_USER_INFOS)
 public class UserInfo implements IDbSerializationHandlers {
     public static final int COLOR_ALPHA = 0x33000000;
@@ -79,6 +81,7 @@ public class UserInfo implements IDbSerializationHandlers {
     public int _health_current;
     public int _health_regeneration;
     public int _health_max;
+    public long syncTs;
 
     public void merge(GsonUserProfile gson) {
         serverId = gson.id;
@@ -103,7 +106,7 @@ public class UserInfo implements IDbSerializationHandlers {
         gold.merge(gson.gold);
         health.merge(gson.health);
         nextExp = gson.nextExp;
-
+        syncTs = appState().getServerTime();
     }
 
     @Override
@@ -139,5 +142,20 @@ public class UserInfo implements IDbSerializationHandlers {
         } catch (NumberFormatException e) {
             return INVALID_COLOR;
         }
+    }
+
+    public int currentHealth() {
+        long dt = appState().getServerTime() - syncTs;
+        if (dt < 0)
+            return health.current;
+        return Math.min(health.current + health.regeneration * ((int) (dt / 1000)), health.max);
+    }
+
+    public int currentGold() {
+        long dt = appState().getServerTime() - syncTs;
+        if (dt < 0 || gold.frequency == 0)
+            return gold.current;
+        int gain = gold.gain * (int) (dt / (1000 * gold.frequency));
+        return gold.current + gain;
     }
 }
