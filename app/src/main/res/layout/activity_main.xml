@@ -45,35 +45,35 @@
                 android:id="@+id/profile_lv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textStyle="bold"
+                android:textAppearance="@style/MapProfileValueTextAppearance"
                 tools:text="LV: 1"/>
 
             <TextView
                 android:id="@+id/profile_xp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textStyle="bold"
+                android:textAppearance="@style/MapProfileValueTextAppearance"
                 tools:text="XP: 1"/>
 
             <TextView
                 android:id="@+id/profile_hp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textStyle="bold"
+                android:textAppearance="@style/MapProfileValueTextAppearance"
                 tools:text="HP: 1"/>
 
             <TextView
                 android:id="@+id/profile_ar"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textStyle="bold"
+                android:textAppearance="@style/MapProfileValueTextAppearance"
                 tools:text="AR: 1"/>
 
             <TextView
                 android:id="@+id/profile_gd"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textStyle="bold"
+                android:textAppearance="@style/MapProfileValueTextAppearance"
                 tools:text="GD: 1"/>
         </LinearLayout>
 
