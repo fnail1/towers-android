@@ -31,6 +31,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.IOException;
 import java.util.Stack;
 
 import butterknife.BindView;
@@ -44,11 +45,13 @@ import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
+import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
 
+import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.data;
@@ -71,7 +74,6 @@ public class MainActivity extends BaseFragmentActivity
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
     public static final int MIN_ZOOM_PREFERENCE = 10;
     public static final int ZOOM_SHOW_ME = 18;
-    public static final int TOWERS_VISIBILITY_SCALE_MAX = 5000;
 
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
@@ -155,18 +157,20 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if (map != null) {
-            onReady();
-        }
-        checkOrRequestPermissions(RC_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION);
-
 
         if (prefs().getAccessToken() == null) {
             startActivity(new Intent(this, LoginActivity.class));
+            finish();
         } else if (TextUtils.isEmpty(game().me.name) || game().me.color == UserInfo.INVALID_COLOR) {
             startActivity(new Intent(this, EditProfileActivity.class));
         }
-//        mapObjects().loadingCompleteEvent.add(this);
+
+        checkOrRequestPermissions(RC_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION);
+
+        if (map != null) {
+            onReady();
+        }
+
         game().gameMessageEvent.add(this);
         game().myProfileEvent.add(this);
         game().geoDataChangedEvent.add(this);
@@ -388,8 +392,17 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.logout)
     protected void onLogoutClick() {
-        app().onLogout();
-        recreate();
+        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
+            try {
+                api().logout().execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            runOnUiThread(() -> {
+                app().onLogout();
+                recreate();
+            });
+        });
     }
 
     @OnClick(R.id.my_towers_info)

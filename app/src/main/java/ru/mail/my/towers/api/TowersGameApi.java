@@ -67,7 +67,6 @@ public interface TowersGameApi {
      * Выход из системы
      */
     @POST("logout")
-    @FormUrlEncoded
     Call<GsonLogoutResponse> logout();
 
     /**

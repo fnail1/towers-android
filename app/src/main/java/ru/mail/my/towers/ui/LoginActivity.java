@@ -121,11 +121,9 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            app().onLogin(number, body.loginData.token);
-
             if (!body.loginData.isNewUser) {
-                Response<GsonGetProfileResponse> myProfile = api().getMyProfile().execute();
                 app().onLogin(number, body.loginData.token);
+                Response<GsonGetProfileResponse> myProfile = api().getMyProfile().execute();
                 game().updateMyProfile(myProfile.body().profile);
             } else {
                 app().onLogin(number, body.loginData.token);
