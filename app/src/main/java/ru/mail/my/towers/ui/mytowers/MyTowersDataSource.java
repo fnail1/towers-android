@@ -1,6 +1,5 @@
 package ru.mail.my.towers.ui.mytowers;
 
-import java.util.Arrays;
 import java.util.List;
 
 import ru.mail.my.towers.data.CursorWrapper;

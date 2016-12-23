@@ -187,15 +187,18 @@ public final class Utils {
     }
 
     public static int mulColors(int c1, int c2, float alpha) {
+        int a1 = Color.alpha(c1);
         int r1 = Color.red(c1);
         int g1 = Color.green(c1);
         int b1 = Color.blue(c1);
 
+        int a2 = Color.alpha(c2);
         int r2 = Color.red(c2);
         int g2 = Color.green(c2);
         int b2 = Color.blue(c2);
 
-        int c = Color.argb(0xff,
+        int c = Color.argb(
+                (int) (alpha * a2 + (1 - alpha) * a1),
                 (int) (alpha * r2 + (1 - alpha) * r1),
                 (int) (alpha * g2 + (1 - alpha) * g1),
                 (int) (alpha * b2 + (1 - alpha) * b1));

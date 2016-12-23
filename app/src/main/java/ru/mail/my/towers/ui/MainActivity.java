@@ -18,6 +18,8 @@ import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.Transformation;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,6 +53,7 @@ import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
+import ru.mail.my.towers.utils.Utils;
 
 import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.app;
@@ -136,6 +139,7 @@ public class MainActivity extends BaseFragmentActivity
     private GoogleApiClient client;
     private boolean mapControlsVisible = true;
     private Tower selectedTower;
+    public static final int HIGHTLIGHT_PROFILE_VALUE_COLOR = 0x7fff0000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -531,13 +535,33 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     public void onMyProfileChanged(UserInfo args) {
         runOnUiThread(() -> {
-            profileLv.setText("LV: " + (args.currentLevel + 1));
-            profileXp.setText("XP: " + args.exp + "/" + args.nextExp);
-            profileHp.setText("HP: " + args.currentHealth() + "/" + args.health.max);
-            profileAr.setText("AR: " + Math.round(args.area));
-            profileGd.setText("GD: " + args.currentGold());
+            updateProfileValue(this.profileLv, "LV: " + (args.currentLevel + 1));
+            updateProfileValue(profileXp, "XP: " + args.exp + "/" + args.nextExp);
+            updateProfileValue(profileHp, "HP: " + args.currentHealth() + "/" + args.health.max);
+            updateProfileValue(profileAr, "AR: " + Math.round(args.area));
+            updateProfileValue(profileGd, "GD: " + args.currentGold());
             buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
         });
+    }
+
+    public void updateProfileValue(TextView textView, String text) {
+        if (textView.length() == 0) {
+            textView.setText(text);
+        } else if (!textView.getText().equals(text)) {
+            textView.setText(text);
+            int color = textView.getCurrentTextColor();
+            textView.setTextColor(HIGHTLIGHT_PROFILE_VALUE_COLOR);
+
+            Animation animation = new Animation() {
+                @Override
+                protected void applyTransformation(float alpha, Transformation t) {
+                    super.applyTransformation(alpha, t);
+                    textView.setTextColor(Utils.mulColors(HIGHTLIGHT_PROFILE_VALUE_COLOR, color, alpha));
+                }
+            };
+            animation.setDuration(1200);
+            textView.startAnimation(animation);
+        }
     }
 
     @Override
