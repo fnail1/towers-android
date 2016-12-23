@@ -35,7 +35,7 @@ public class MyTowersCommands {
                 "\tfrom Towers\n" +
                 "\twhere my=1\n" +
                 ")\n" +
-                "order by " + NETWORK + ", " + COUNT + ", " + TOWER + "\n " +
+                "order by " + NETWORK + ", " + TOWER + "\n " +
                 "limit " + limit + " offset " + skip;
 
         return new MyTowersCursor(db.rawQuery(sql, null));
