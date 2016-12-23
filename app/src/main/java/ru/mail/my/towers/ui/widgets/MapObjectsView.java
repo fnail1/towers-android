@@ -2,7 +2,6 @@ package ru.mail.my.towers.ui.widgets;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Rect;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
@@ -133,7 +132,7 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
                     tid = found.towers.keyAt(i);
                 }
             }
-            tower = data().towers().selectById(tid);
+            tower = data().towers.selectById(tid);
             towersMap.setSelection(tower._id, tower.network);
         } else {
             tower = null;

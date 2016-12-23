@@ -21,10 +21,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import retrofit2.Response;
-import ru.mail.my.towers.diagnostics.Logger;
 
 import static ru.mail.my.towers.TowersApp.app;
 
@@ -284,5 +280,9 @@ public final class Utils {
                 Math.max(255, Color.red(baseColor) + Color.red(highlighting)),
                 Math.max(255, Color.green(baseColor) + Color.green(highlighting)),
                 Math.max(255, Color.blue(baseColor) + Color.blue(highlighting)));
+    }
+
+    public static String formatNetworkLevel(float level) {
+        return Float.toString((float) Math.round((level + 1) * 10) / 10);
     }
 }

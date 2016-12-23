@@ -111,7 +111,7 @@ public class TowerInfoPopup implements IMapPopup, View.OnClickListener {
                 repair.setText("починить");
             }
         } else {
-            UserInfo owner = data().users().select(tower.owner);
+            UserInfo owner = data().users.select(tower.owner);
             this.owner.setText(owner.name);
             repair.setVisibility(View.GONE);
             destroy.setVisibility(View.GONE);

@@ -2,7 +2,6 @@ package ru.mail.my.towers.ui;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v7.widget.Toolbar;
 import android.widget.TextView;
 
 import butterknife.BindView;
@@ -33,7 +32,7 @@ public class UserProfileActivity extends BaseActivity {
         setContentView(R.layout.activity_user_profile);
         ButterKnife.bind(this);
 
-        UserInfo userInfo = data().users().select(getIntent().getLongExtra(PARAM_UID, -1));
+        UserInfo userInfo = data().users.select(getIntent().getLongExtra(PARAM_UID, -1));
         setTitle(userInfo.name);
 
         profileLv.setText("LV: " + (userInfo.currentLevel + 1));

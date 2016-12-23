@@ -44,6 +44,7 @@ import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
+import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
@@ -391,6 +392,11 @@ public class MainActivity extends BaseFragmentActivity
         recreate();
     }
 
+    @OnClick(R.id.my_towers_info)
+    protected void onMyTowersInfoClick() {
+        startActivity(new Intent(this, MyTowersActivity.class));
+    }
+
     @Override
     public void onPopupResult(IMapPopup popup) {
         popups.remove(popup);
@@ -473,7 +479,7 @@ public class MainActivity extends BaseFragmentActivity
 
                 animateAppearance(attackTower, 100);
                 animateAppearance(towerOwnerInfo, 150);
-                towerOwnerInfoText.setText(data().users().select(selectedTower.owner).name);
+                towerOwnerInfoText.setText(data().users.select(selectedTower.owner).name);
             }
         }
     }

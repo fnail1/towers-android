@@ -6,6 +6,7 @@ import ru.mail.my.towers.data.DbForeignKey;
 import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.data.IDbSerializationHandlers;
 import ru.mail.my.towers.model.db.AppData;
+import ru.mail.my.towers.model.db.ColumnNames;
 
 import static ru.mail.my.towers.TowersApp.game;
 

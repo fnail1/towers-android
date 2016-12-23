@@ -13,6 +13,7 @@ import ru.mail.my.towers.api.model.GsonGetProfileResponse;
 import ru.mail.my.towers.api.model.GsonMyTowersResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
+import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
 import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
 import ru.mail.my.towers.api.model.GsonUserInfo;
@@ -28,6 +29,7 @@ import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.data;
+import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.prefs;
 
 public class GameService {
@@ -55,7 +57,7 @@ public class GameService {
     };
 
     public GameService(Preferences preferences, AppData data) {
-        UserInfo userInfo = data.users().select(preferences.getMeDbId());
+        UserInfo userInfo = data.users.select(preferences.getMeDbId());
         if (userInfo == null) {
             userInfo = new UserInfo();
         }
@@ -68,7 +70,7 @@ public class GameService {
         this.me.merge(data);
 
         if (exist) {
-            data().users().save(me);
+            data().users.save(me);
             myProfileEvent.fire(me);
         }
     }
@@ -78,7 +80,7 @@ public class GameService {
         this.me.merge(data);
 
         if (me.serverId != 0) {
-            data().users().save(me);
+            data().users.save(me);
             myProfileEvent.fire(me);
         }
     }
@@ -132,55 +134,122 @@ public class GameService {
                 }
             }
 
-            int generation = prefs().getMyTowersGeneration() + 1;
-
-            Response<GsonMyTowersResponse> myTowersResponse = api().getMyTowers().execute();
-            if (myTowersResponse.isSuccessful()) {
-                GsonMyTowersResponse myTowers = myTowersResponse.body();
-                if (myTowers.success) {
-                    int totalCount = 0;
-                    for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
-                        if (towersNet.inside.length == 0)
-                            continue;
-                        totalCount += towersNet.inside.length;
-
-                        float sumLevel = 0;
-                        long[] serverIds = new long[towersNet.inside.length];
-                        for (int towerIndex = 0; towerIndex < towersNet.inside.length; towerIndex++) {
-                            GsonTowerInfo towerInfo = towersNet.inside[towerIndex];
-                            sumLevel += towerInfo.level;
-                            serverIds[towerIndex] = towerInfo.id;
-                        }
-
-                        TowerNetwork network = data().networks().selectByTowers(serverIds);
-                        if (network == null) {
-                            network = new TowerNetwork(towersNet);
-                        } else {
-                            network.merge(towersNet);
-                        }
-                        network.level = sumLevel / towersNet.inside.length;
-                        network.my = true;
-                        data().networks().save(network, generation);
-
-                        for (GsonTowerInfo towerInfo : towersNet.inside) {
-                            UserInfo owner = new UserInfo();
-                            owner.merge(towerInfo.user);
-                            data().users().save(owner);
-
-                            Tower tower = new Tower(towerInfo, owner);
-                            tower.network = network._id;
-                            data().towers().save(tower, generation);
-                        }
-                    }
-                    me.towersCount = totalCount;
-                    data().users().save(me);
-                    prefs().setMyTowersGeneration(generation);
-                    data().towers().deleteDeprecated(generation, true);
-                }
-            }
+            loadMyTowers(me);
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public boolean loadTowers(MapExtent mapExtent) throws IOException {
+        int generation = prefs().getTowersGeneration() + 1;
+        Response<GsonTowersInfoResponse> response = api().getTowersInfo(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2).execute();
+        if (response.code() != HttpURLConnection.HTTP_OK)
+            return false;
+
+        GsonTowersInfoResponse towersInfo = response.body();
+        if (!towersInfo.success)
+            return false;
+
+        for (GsonTowersInfoResponse.GsonTowersCollection networkInfo : towersInfo.towersNew) {
+            GsonTowerInfo[] towers = networkInfo.towers;
+            if (towers.length == 0)
+                continue;
+
+            updateTowersNetwork(towers, generation);
+        }
+
+        prefs().setTowersGeneration(generation);
+        data().towers.deleteDeprecated(generation, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
+        return true;
+    }
+
+    private void loadMyTowers(UserInfo me) throws IOException {
+        int generation = prefs().getMyTowersGeneration() + 1;
+
+        Response<GsonMyTowersResponse> myTowersResponse = api().getMyTowers().execute();
+        if (myTowersResponse.isSuccessful()) {
+            GsonMyTowersResponse myTowers = myTowersResponse.body();
+            if (myTowers.success) {
+                int totalCount = 0;
+                for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
+                    GsonTowerInfo[] towers = towersNet.inside;
+                    if (towers.length == 0)
+                        continue;
+                    totalCount += towers.length;
+
+                    updateTowersNetwork(towers, generation);
+                }
+                me.towersCount = totalCount;
+                data().users.save(me);
+                prefs().setMyTowersGeneration(generation);
+                data().towers.deleteDeprecated(generation, true);
+            }
+        }
+    }
+
+
+    public void updateTowersNetwork(GsonTowerInfo[] towers, int generation) {
+        TowerNetwork network = null;
+        for (GsonTowerInfo towerInfo : towers) {
+            Tower tower = data().towers.selectByServerId(towerInfo.id);
+            if (tower != null) {
+                network = data().networks.selectById(tower.network);
+                break;
+            }
+        }
+
+        if (network == null) {
+            network = new TowerNetwork();
+            data().networks.save(network, generation);
+        }
+
+        double lat = 0, lng = 0;
+        float level = 0;
+        int health = 0;
+        int maxHealth = 0;
+
+
+        for (GsonTowerInfo towerInfo : towers) {
+            lat += towerInfo.lat;
+            lng += towerInfo.lng;
+            level += towerInfo.level;
+            health += towerInfo.health;
+            maxHealth += towerInfo.maxHealth;
+            network.color = UserInfo.parseColor(towerInfo.user.color);
+        }
+
+        double centerLat = lat / towers.length;
+        double centerLng = lng / towers.length;
+        double dmin = Double.MAX_VALUE;
+        GsonTowerInfo closest = null;
+        for (GsonTowerInfo towerInfo : towers) {
+            double dlat = towerInfo.lat - centerLat;
+            double dlng = towerInfo.lng - centerLng;
+            double d = dlat * dlat + dlng * dlng;
+            if (d < dmin) {
+                dmin = d;
+                closest = towerInfo;
+            }
+        }
+        //noinspection ConstantConditions
+        network.lat = closest.lat;
+        network.lng = closest.lng;
+        network.level = level / towers.length;
+        network.count = towers.length;
+        network.health = health;
+        network.maxHealth = maxHealth;
+        network.my = towers[0].user.id == game().me.serverId;
+        data().networks.save(network, generation);
+
+        for (GsonTowerInfo towerInfo : towers) {
+            UserInfo owner = new UserInfo();
+            owner.merge(towerInfo.user);
+            data().users.save(owner);
+
+            Tower tower = new Tower(towerInfo, owner);
+            tower.network = network._id;
+            data().towers.save(tower, generation);
         }
     }
 
@@ -202,10 +271,10 @@ public class GameService {
                         me.towersCount++;
                         me.merge(body.userInfo);
                         me.merge(body.tower.user);
-                        data().users().save(me);
+                        data().users.save(me);
 
                         Tower tower = new Tower(body.tower, me);
-                        data().towers().save(tower, prefs().getMyTowersGeneration());
+                        data().towers.save(tower, prefs().getMyTowersGeneration());
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
                         myProfileEvent.fire(me);
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");
@@ -230,7 +299,7 @@ public class GameService {
                     } else {
                         me.towersCount--;
 
-                        data().towers().delete(tower._id);
+                        data().towers.delete(tower._id);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' удалена");
 
@@ -256,7 +325,7 @@ public class GameService {
                     } else {
                         me.towersCount--;
 
-                        data().towers().delete(tower._id);
+                        data().towers.delete(tower._id);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
                         gameMessageEvent.fire("Башня \'" + tower.title + "\' обновлена");
 

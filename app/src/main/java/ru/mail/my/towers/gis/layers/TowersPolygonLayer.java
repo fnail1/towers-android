@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.support.v4.util.LongSparseArray;
 import android.util.SparseArray;
 
 import java.util.ArrayList;
@@ -16,7 +15,6 @@ import ru.mail.my.towers.gis.ScreenDataObjects;
 import ru.mail.my.towers.gis.ScreenProjection;
 import ru.mail.my.towers.gis.TowersMap;
 import ru.mail.my.towers.model.Tower;
-import ru.mail.my.towers.model.TowerNetwork;
 
 import static ru.mail.my.towers.TowersApp.data;
 
@@ -93,11 +91,11 @@ public class TowersPolygonLayer extends PolygonLayer {
     @Override
     public void requestData(TowersMap towersMap, MapExtent mapExtent, ScreenDataObjects dataObjects) {
         if (dataObjects.networks == null) {
-            dataObjects.networks = data().networks().select(mapExtent);
+            dataObjects.networks = data().networks.select(mapExtent);
         }
 
         if (dataObjects.towers == null) {
-            dataObjects.towers = data().towers().select(dataObjects.networks);
+            dataObjects.towers = data().towers.select(dataObjects.networks);
         }
     }
 

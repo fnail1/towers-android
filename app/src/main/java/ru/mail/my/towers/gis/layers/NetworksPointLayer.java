@@ -18,6 +18,7 @@ import ru.mail.my.towers.gis.ScreenProjection;
 import ru.mail.my.towers.gis.TowersMap;
 import ru.mail.my.towers.gis.geometry.NetworkPoint;
 import ru.mail.my.towers.model.TowerNetwork;
+import ru.mail.my.towers.utils.Utils;
 
 import static ru.mail.my.towers.TowersApp.data;
 
@@ -67,8 +68,7 @@ public class NetworksPointLayer extends PointLayer {
         symbol.network = network;
         symbol.paint = engine.getPaint(pointColor);
 
-        float level = Math.round((network.level + 1) * 100) / 100;
-        symbol.text = String.format(Locale.getDefault(), "%d (%.2f)", network.count, level);
+        symbol.text = String.format(Locale.getDefault(), "%d (%s)", network.count, Utils.formatNetworkLevel(network.level));
         symbol.textRect = new Rect();
         symbol.textPaint = textPaint;
 
@@ -108,7 +108,7 @@ public class NetworksPointLayer extends PointLayer {
     @Override
     public void requestData(TowersMap towersMap, MapExtent mapExtent, ScreenDataObjects dataObjects) {
         if (dataObjects.networks == null) {
-            dataObjects.networks = data().networks().select(mapExtent);
+            dataObjects.networks = data().networks.select(mapExtent);
         }
     }
 }

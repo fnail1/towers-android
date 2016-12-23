@@ -1,8 +1,11 @@
 package ru.mail.my.towers.model;
 
 import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
+import ru.mail.my.towers.data.DbColumn;
+import ru.mail.my.towers.data.DbForeignKey;
 import ru.mail.my.towers.data.DbTable;
 import ru.mail.my.towers.model.db.AppData;
+import ru.mail.my.towers.model.db.ColumnNames;
 
 @DbTable(name = AppData.TABLE_TOWER_NETWORKS)
 public class TowerNetwork extends AbsRow {
@@ -28,6 +31,16 @@ public class TowerNetwork extends AbsRow {
     public int count;
     public int color;
     public boolean my;
+
+    /**
+     * текущее здоровье
+     */
+    public int health;
+
+    /**
+     * максимальное здоровье
+     */
+    public int maxHealth;
 
 
     public TowerNetwork() {

@@ -15,7 +15,6 @@ public class MyTowersActivity extends BaseActivity {
     @BindView(R.id.list)
     RecyclerView list;
 
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,6 +23,8 @@ public class MyTowersActivity extends BaseActivity {
         setTitle("Мои башни");
 
         list.setLayoutManager(new LinearLayoutManager(this));
-        list.setAdapter(new MyTowersListAdapter());
+        MyTowersListAdapter adapter = new MyTowersListAdapter();
+        adapter.init();
+        list.setAdapter(adapter);
     }
 }

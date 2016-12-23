@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.gis.MapExtent;
-import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.TowerNetwork;
 
 import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;

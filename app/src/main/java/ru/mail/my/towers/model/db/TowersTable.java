@@ -1,24 +1,19 @@
 package ru.mail.my.towers.model.db;
 
 import android.database.Cursor;
-import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.support.annotation.NonNull;
-import android.support.annotation.StringDef;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import ru.mail.my.towers.data.CursorWrapper;
 import ru.mail.my.towers.data.DbUtils;
-import ru.mail.my.towers.gis.MapExtent;
-import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 
 import static ru.mail.my.towers.TowersApp.data;
-import static ru.mail.my.towers.diagnostics.DebugUtils.safeThrow;
 import static ru.mail.my.towers.diagnostics.Logger.logDb;
 
 public class TowersTable extends SQLiteCommands<Tower> {
@@ -55,7 +50,7 @@ public class TowersTable extends SQLiteCommands<Tower> {
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
         if (delete > 0) {
-            data().networks().deleteEmpty();
+            data().networks.deleteEmpty();
         }
 
         logDb("deleteDeprecated %d %s: %d objects deleted", generation, my ? "my" : "their", delete);
@@ -71,7 +66,7 @@ public class TowersTable extends SQLiteCommands<Tower> {
         int delete = db.delete(AppData.TABLE_TOWERS, sb.toString(), null);
 
         if (delete > 0) {
-            data().networks().deleteEmpty();
+            data().networks.deleteEmpty();
         }
 
         logDb("deleteDeprecated %f;%f - %f;%f: %d objects deleted", lat1, lng1, lat2, lng2, delete);
@@ -141,6 +136,5 @@ public class TowersTable extends SQLiteCommands<Tower> {
     public int countOfMy() {
         return DbUtils.count(db, "select count (*) from " + AppData.TABLE_TOWERS + " where " + ColumnNames.IS_MY + " = 1", (String[]) null);
     }
-
 
 }

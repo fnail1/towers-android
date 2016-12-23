@@ -16,9 +16,10 @@ public class AppData {
     public static final String TABLE_USER_INFOS = "UserInfos";
 
     private final SQLiteDatabase db;
-    private final TowersTable towers;
-    private final UsersTable users;
-    private final NetworksTable networks;
+    public final TowersTable towers;
+    public final UsersTable users;
+    public final NetworksTable networks;
+    public final MyTowersCommands myTower;
 
     public AppData(Context context, String userId) {
         SQLiteOpenHelper helper = new AppDataSQLiteOpenHelper(context, normalizeDbName(userId));
@@ -26,18 +27,7 @@ public class AppData {
         towers = new TowersTable(db);
         users = new UsersTable(db);
         networks = new NetworksTable(db);
-    }
-
-    public TowersTable towers() {
-        return towers;
-    }
-
-    public UsersTable users() {
-        return users;
-    }
-
-    public NetworksTable networks() {
-        return networks;
+        myTower = new MyTowersCommands(db);
     }
 
     public static String normalizeDbName(String userId) {

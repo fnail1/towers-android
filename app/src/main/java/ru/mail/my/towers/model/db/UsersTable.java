@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteDoneException;
 import android.database.sqlite.SQLiteStatement;
 
 import ru.mail.my.towers.data.DbUtils;
-import ru.mail.my.towers.model.ColumnNames;
 import ru.mail.my.towers.model.UserInfo;
 
 public class UsersTable {

@@ -61,4 +61,23 @@
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textStyle">normal</item>
     </style>
+
+    <style name="CommonListGroupTitleTextAppearance">
+        <item name="android:textSize">12pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+
+    <style name="CommonListGroupSubtitleTextAppearance">
+        <item name="android:textSize">8pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">#7f000000</item>
+    </style>
+
+    <style name="CommonListItemTitleTextAppearance">
+        <item name="android:textSize">8pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+    </style>
 </resources>
