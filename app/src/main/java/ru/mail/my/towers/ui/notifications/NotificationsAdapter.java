@@ -85,24 +85,25 @@ public class NotificationsAdapter extends RecyclerView.Adapter {
                     notification.getTime().get(Calendar.HOUR_OF_DAY),
                     notification.getTime().get(Calendar.MINUTE)));
             message.setText(notification.message);
+            int foreColor;
             switch (notification.type) {
                 case SUCCESS:
-                    time.setTextColor(0x7f00ff00);
-                    message.setTextColor(0x7f00ff00);
+                    foreColor = Utils.getColor(context, R.color.colorNotificationSuccess);
                     break;
                 case ERROR:
-                    time.setTextColor(0x7fff0000);
-                    message.setTextColor(0x7fff0000);
+                    foreColor = Utils.getColor(context, R.color.colorNotificationError);
                     break;
                 case INFO:
-                    time.setTextColor(0x7f000000);
-                    message.setTextColor(0x7f000000);
+                    foreColor = Utils.getColor(context, R.color.colorNotificationInfo);
                     break;
                 case ALARM:
-                    time.setTextColor(0x7f0000ff);
-                    message.setTextColor(0x7f0000ff);
+                    foreColor = Utils.getColor(context, R.color.colorNotificationAlarm);
                     break;
+                default:
+                    throw new IllegalArgumentException(String.valueOf(notification.type));
             }
+            time.setTextColor(foreColor);
+            message.setTextColor(foreColor);
         }
     }
 

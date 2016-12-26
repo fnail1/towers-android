@@ -9,4 +9,8 @@
     <color name="colorMapCtrlRipple">#FF1b48FF</color>
     <color name="colorMapPopupCtrlEdit">#ffaaddff</color>
 
+    <color name="colorNotificationSuccess">#7f00ff00</color>
+    <color name="colorNotificationError">#7fff0000</color>
+    <color name="colorNotificationInfo">#7f000000</color>
+    <color name="colorNotificationAlarm">#7f0000ff</color>
 </resources>

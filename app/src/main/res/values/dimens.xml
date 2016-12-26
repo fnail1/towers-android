@@ -9,5 +9,5 @@
     <dimen name="tower_hp_offset">2dp</dimen>
     <dimen name="tower_hp_width">32dp</dimen>
     <dimen name="tower_hp_height">3dp</dimen>
-    <dimen name="toast_width">200dp</dimen>
+    <dimen name="toast_width">180dp</dimen>
 </resources>

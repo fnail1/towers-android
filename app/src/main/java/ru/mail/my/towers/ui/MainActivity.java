@@ -48,6 +48,7 @@ import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.model.Notification;
 import ru.mail.my.towers.model.NotificationType;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
@@ -204,6 +205,18 @@ public class MainActivity extends BaseFragmentActivity
         updateProfileLoop();
 
         toastsEngine = new CustomToastsEngine(mapControls);
+
+//        handler.postDelayed(new Runnable() {
+//            int counter = 1;
+//            Random rnd = new Random();
+//
+//            @Override
+//            public void run() {
+//                toastsEngine.showMessage(String.valueOf(counter++), rnd.nextInt(10000), 0xff000000, 0xf7 + rnd.nextInt(0xffffff));
+//
+//                handler.postDelayed(this, 1000);
+//            }
+//        }, 1000);
     }
 
     @Override
@@ -479,9 +492,26 @@ public class MainActivity extends BaseFragmentActivity
     }
 
     @Override
-    public void onGameNewMessage(String args) {
+    public void onGameNewMessage(Notification notification) {
         runOnUiThread(() -> {
-            toastsEngine.showMessage(args, 4000, 0xffffffff, 0x7f000000);
+            int foreColor;
+            switch (notification.type) {
+                case SUCCESS:
+                    foreColor = Utils.getColor(this, R.color.colorNotificationSuccess);
+                    break;
+                case ERROR:
+                    foreColor = Utils.getColor(this, R.color.colorNotificationError);
+                    break;
+                case INFO:
+                    foreColor = Utils.getColor(this, R.color.colorNotificationInfo);
+                    break;
+                case ALARM:
+                    foreColor = Utils.getColor(this, R.color.colorNotificationAlarm);
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.valueOf(notification.type));
+            }
+            toastsEngine.showMessage(notification.message, 4000, foreColor, 0x7f000000);
             allNotifications.setImageResource(R.drawable.ic_notifications_active);
         });
     }

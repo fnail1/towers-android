@@ -45,9 +45,9 @@ public class GameService {
         }
     };
 
-    public final ObservableEvent<GameMessageEventHandler, GameService, String> gameMessageEvent = new ObservableEvent<GameMessageEventHandler, GameService, String>(this) {
+    public final ObservableEvent<GameMessageEventHandler, GameService, Notification> gameMessageEvent = new ObservableEvent<GameMessageEventHandler, GameService, Notification>(this) {
         @Override
-        protected void notifyHandler(GameMessageEventHandler handler, GameService sender, String args) {
+        protected void notifyHandler(GameMessageEventHandler handler, GameService sender, Notification args) {
             handler.onGameNewMessage(args);
         }
     };
@@ -149,7 +149,7 @@ public class GameService {
         raw.type = type;
         raw.ts = appState().getServerTime();
         data().notifications.insert(raw);
-        gameMessageEvent.fire(message);
+        gameMessageEvent.fire(raw);
     }
 
 
@@ -362,7 +362,7 @@ public class GameService {
     }
 
     public interface GameMessageEventHandler {
-        void onGameNewMessage(String args);
+        void onGameNewMessage(Notification args);
     }
 
     public interface TowersGeoDataChanged {

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
@@ -36,25 +37,20 @@ public class CustomToastsEngine {
         Context context = surface.getContext();
 
         Item item = new Item();
-        TextView textView = new TextView(context);
+        TextView textView = (TextView) LayoutInflater.from(context).inflate(R.layout.toast_custom_layout, surface, false);
         textView.setTag(CustomToastsEngine.class);
-
-        textView.setGravity(Gravity.CENTER);
         textView.setText(text);
-        textView.setBackgroundColor(backgroundColor);
         textView.setTextColor(textColor);
 
         item.view = textView;
         surface.addView(item.view);
         RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) item.view.getLayoutParams();
-        lp.width = context.getResources().getDimensionPixelOffset(R.dimen.toast_width);
-        lp.height = 135;
         lp.leftMargin = (surface.getWidth() - lp.width) / 2;
-        item.view.setPadding(8, 8, 8, 8);
         item.view.setLayoutParams(lp);
 
-        item.view.measure(RelativeLayout.LayoutParams.WRAP_CONTENT, View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY));
-        item.height = item.view.getMeasuredHeight();
+        item.view.measure(View.MeasureSpec.makeMeasureSpec(lp.width, View.MeasureSpec.EXACTLY),
+                RelativeLayout.LayoutParams.WRAP_CONTENT);
+        item.height = item.view.getMeasuredHeight() + lp.topMargin + lp.bottomMargin;
 
         Item last = top;
         if (last != null) {
