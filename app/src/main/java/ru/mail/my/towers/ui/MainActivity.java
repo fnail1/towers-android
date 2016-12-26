@@ -16,11 +16,13 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
 import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +38,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
+import java.util.Random;
 import java.util.Stack;
 
 import butterknife.BindView;
@@ -98,7 +101,7 @@ public class MainActivity extends BaseFragmentActivity
     protected MapObjectsView mapObjectsView;
 
     @BindView(R.id.map_controls)
-    View mapControls;
+    RelativeLayout mapControls;
 
     @BindView(R.id.profile_lv)
     TextView profileLv;
@@ -155,6 +158,7 @@ public class MainActivity extends BaseFragmentActivity
     private int displayedHealth = -1;
     private int displayedArea = -1;
     private int displayedGold = -1;
+    private CustomToastsEngine toastsEngine;
 
 
     @Override
@@ -198,17 +202,21 @@ public class MainActivity extends BaseFragmentActivity
         game().myProfileEvent.add(this);
         game().geoDataChangedEvent.add(this);
         updateProfileLoop();
+
+        toastsEngine = new CustomToastsEngine(mapControls);
     }
 
     @Override
     protected void onPause() {
         handler.removeCallbacksAndMessages(null);
 
+        CustomToastsEngine toastsEngine = this.toastsEngine;
+        this.toastsEngine = null;
+        toastsEngine.removeAll();
+
         game().gameMessageEvent.remove(this);
         game().myProfileEvent.remove(this);
         game().geoDataChangedEvent.remove(this);
-
-//        mapObjects().loadingCompleteEvent.remove(this);
 
         while (!popups.isEmpty())
             popups.pop().close();
@@ -473,7 +481,7 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     public void onGameNewMessage(String args) {
         runOnUiThread(() -> {
-            Toast.makeText(this, args, Toast.LENGTH_SHORT).show();
+            toastsEngine.showMessage(args, 4000, 0xffffffff, 0x7f000000);
             allNotifications.setImageResource(R.drawable.ic_notifications_active);
         });
     }
