@@ -13,9 +13,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 
-import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.toolkit.Flags32;
 import ru.mail.my.towers.toolkit.collections.Query;
@@ -63,14 +61,14 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String buildCreateScript(@NonNull Class<?> rawType) {
+    public static String buildCreateScript(@NonNull Class<?> rowType) {
         StringBuilder sb = new StringBuilder();
         sb.append("create table ");
-        String tableName = getTableName(rawType);
+        String tableName = getTableName(rowType);
         sb.append(tableName);
         sb.append(" (");
 
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             createColumnDefinition(field, sb);
             sb.append(", ");
         }
@@ -85,9 +83,9 @@ public class DbUtils {
 
 
     @NonNull
-    public static String getTableName(@NonNull Class<?> rawType) {
-        DbTable meta = rawType.getAnnotation(DbTable.class);
-        return meta != null && !TextUtils.isEmpty(meta.name()) ? meta.name() : rawType.getSimpleName();
+    public static String getTableName(@NonNull Class<?> rowType) {
+        DbTable meta = rowType.getAnnotation(DbTable.class);
+        return meta != null && !TextUtils.isEmpty(meta.name()) ? meta.name() : rowType.getSimpleName();
     }
 
     public static void createColumnDefinition(@NonNull Field field, @NonNull StringBuilder out) {
@@ -160,22 +158,22 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String buildInsert(@NonNull Class<?> rawType) {
-        return buildInsert(rawType, null);
+    public static String buildInsert(@NonNull Class<?> rowType) {
+        return buildInsert(rowType, null);
     }
 
     @NonNull
-    public static String buildInsert(@NonNull Class<?> rawType, @Nullable ConflictAction onConflict) {
+    public static String buildInsert(@NonNull Class<?> rowType, @Nullable ConflictAction onConflict) {
         StringBuilder sb = new StringBuilder();
         sb.append("insert");
         if (onConflict != null)
             sb.append(" or ").append(onConflict.name());
         sb.append(" into ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" (");
 
         int fieldCount = 0;
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && column.primaryKey())
                 continue;
@@ -195,31 +193,31 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String[] buildInsertArgs(@NonNull Object raw) {
-        if (raw instanceof IDbSerializationHandlers)
-            ((IDbSerializationHandlers) raw).onBeforeSerialization();
+    public static String[] buildInsertArgs(@NonNull Object row) {
+        if (row instanceof IDbSerializationHandlers)
+            ((IDbSerializationHandlers) row).onBeforeSerialization();
 
-        ArrayList<String> list = new ArrayList<>(raw.getClass().getDeclaredFields().length);
-        for (Field field : iterateFields(raw.getClass())) {
+        ArrayList<String> list = new ArrayList<>(row.getClass().getDeclaredFields().length);
+        for (Field field : iterateFields(row.getClass())) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && column.primaryKey())
                 continue;
 
-            String value = getFieldValueAsString(raw, field, column);
+            String value = getFieldValueAsString(row, field, column);
             list.add(value);
         }
         return list.toArray(new String[list.size()]);
     }
 
     @NonNull
-    public static String buildUpdate(@NonNull Class<?> rawType) {
+    public static String buildUpdate(@NonNull Class<?> rowType) {
         StringBuilder sb = new StringBuilder();
         sb.append("update ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" set ");
         String pk = null;
 
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && column.primaryKey()) {
                 pk = getColumnName(field, column);
@@ -237,14 +235,14 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String buildUpdate(@NonNull Class<?> rawType, String keyColumn) {
+    public static String buildUpdate(@NonNull Class<?> rowType, String keyColumn) {
         StringBuilder sb = new StringBuilder();
         sb.append("update ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" set ");
         String pk = null;
 
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && (column.primaryKey() || column.equals(keyColumn)))
                 continue;
@@ -259,13 +257,13 @@ public class DbUtils {
         return sb.toString();
     }
 
-    public static <T> String buildDelete(Class<T> rawType) {
+    public static <T> String buildDelete(Class<T> rowType) {
         StringBuilder sb = new StringBuilder();
         sb.append("delete from  ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" where ");
 
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && column.primaryKey()) {
                 sb.append(getColumnName(field, column));
@@ -278,20 +276,20 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String[] buildUpdateArgs(@NonNull Object raw) {
-        if (raw instanceof IDbSerializationHandlers)
-            ((IDbSerializationHandlers) raw).onBeforeSerialization();
+    public static String[] buildUpdateArgs(@NonNull Object row) {
+        if (row instanceof IDbSerializationHandlers)
+            ((IDbSerializationHandlers) row).onBeforeSerialization();
 
         try {
             ArrayList<String> values = new ArrayList<>();
             String pk = null;
-            for (Field field : iterateFields(raw.getClass())) {
+            for (Field field : iterateFields(row.getClass())) {
                 DbColumn column = field.getAnnotation(DbColumn.class);
                 if (column != null && column.primaryKey()) {
-                    pk = field.get(raw).toString();
+                    pk = field.get(row).toString();
                     continue;
                 }
-                String value = getFieldValueAsString(raw, field, column);
+                String value = getFieldValueAsString(row, field, column);
                 values.add(value);
             }
             values.add(pk);
@@ -302,19 +300,19 @@ public class DbUtils {
     }
 
     @Nullable
-    private static String getFieldValueAsString(@NonNull Object raw, Field field, DbColumn column) {
+    private static String getFieldValueAsString(@NonNull Object row, Field field, DbColumn column) {
         try {
             String value;
             if (field.getType().isEnum()) {
-                value = String.valueOf(((Enum<?>) field.get(raw)).ordinal());
+                value = String.valueOf(((Enum<?>) field.get(row)).ordinal());
             } else if (field.getType() == Flags32.class) {
-                value = String.valueOf(((Flags32) field.get(raw)).get());
+                value = String.valueOf(((Flags32) field.get(row)).get());
             } else if (field.getType() == boolean.class || field.getType() == Boolean.class) {
-                value = field.getBoolean(raw) ? "1" : "0";
-            } else if (shouldReplaceZeroWithNull(raw, field, column))
+                value = field.getBoolean(row) ? "1" : "0";
+            } else if (shouldReplaceZeroWithNull(row, field, column))
                 value = null;
             else {
-                Object obj = field.get(raw);
+                Object obj = field.get(row);
                 value = obj == null ? null : obj.toString();
             }
 
@@ -324,14 +322,14 @@ public class DbUtils {
         }
     }
 
-    private static boolean shouldReplaceZeroWithNull(@NonNull Object raw, Field field, DbColumn column) throws IllegalAccessException {
+    private static boolean shouldReplaceZeroWithNull(@NonNull Object row, Field field, DbColumn column) throws IllegalAccessException {
         return (column != null && column.unique() || field.getAnnotation(DbForeignKey.class) != null)
-                && ((field.getType() == long.class && field.getLong(raw) == 0L)
-                || (field.getType() == int.class && field.getInt(raw) == 0));
+                && ((field.getType() == long.class && field.getLong(row) == 0L)
+                || (field.getType() == int.class && field.getInt(row) == 0));
     }
 
-    public static void buildComplexColumnNames(@NonNull Class<?> rawType, String tableAlias, @NonNull StringBuilder out) {
-        for (Field field : iterateFields(rawType)) {
+    public static void buildComplexColumnNames(@NonNull Class<?> rowType, String tableAlias, @NonNull StringBuilder out) {
+        for (Field field : iterateFields(rowType)) {
             out.append(tableAlias)
                     .append('.')
                     .append(getColumnName(field))
@@ -343,10 +341,10 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String buildSelectAll(@NonNull Class<?> rawType) {
+    public static String buildSelectAll(@NonNull Class<?> rowType) {
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             String name = getColumnName(field, column);
             sb.append(name);
@@ -354,18 +352,18 @@ public class DbUtils {
         }
         sb.delete(sb.length() - 2, sb.length());
         sb.append("\nfrom ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append('\n');
         return sb.toString();
     }
 
     @NonNull
-    public static String buildSelectById(@NonNull Class<?> rawType) {
+    public static String buildSelectById(@NonNull Class<?> rowType) {
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
 
         String pk = null;
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             String name = getColumnName(field, column);
             if (column != null && column.primaryKey()) {
@@ -376,7 +374,7 @@ public class DbUtils {
         }
         sb.delete(sb.length() - 2, sb.length());
         sb.append(" from ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" where ");
         sb.append(pk);
         sb.append(" = ?");
@@ -385,11 +383,11 @@ public class DbUtils {
     }
 
     @NonNull
-    public static String buildSelectById(@NonNull Class<?> rawType, String keyColumn) {
+    public static String buildSelectById(@NonNull Class<?> rowType, String keyColumn) {
         StringBuilder sb = new StringBuilder();
         sb.append("select ");
 
-        for (Field field : iterateFields(rawType)) {
+        for (Field field : iterateFields(rowType)) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             String name = getColumnName(field, column);
             sb.append(name);
@@ -397,7 +395,7 @@ public class DbUtils {
         }
         sb.delete(sb.length() - 2, sb.length());
         sb.append(" from ");
-        sb.append(getTableName(rawType));
+        sb.append(getTableName(rowType));
         sb.append(" where ");
         sb.append(keyColumn);
         sb.append(" = ?");
@@ -406,8 +404,8 @@ public class DbUtils {
     }
 
     @NonNull
-    public static <T> ArrayList<T> readToList(@NonNull Cursor cursor, @NonNull Class<T> rawType, String tableAlias) {
-        CursorReader<T> reader = new CursorReader<>(cursor, rawType, mapCursorForRawType(cursor, rawType, tableAlias));
+    public static <T> ArrayList<T> readToList(@NonNull Cursor cursor, @NonNull Class<T> rowType, String tableAlias) {
+        CursorReader<T> reader = new CursorReader<>(cursor, rowType, mapCursorForRowType(cursor, rowType, tableAlias));
         ArrayList<T> list = new ArrayList<>(cursor.getCount());
         for (T item : reader) {
             list.add(item);
@@ -417,20 +415,20 @@ public class DbUtils {
     }
 
     @NonNull
-    public static <K, T> HashMap<K, T> readToMap(@NonNull Cursor cursor, @NonNull Class<T> rawType) {
-        Field[] fields = rawType.getFields();
+    public static <K, T> HashMap<K, T> readToMap(@NonNull Cursor cursor, @NonNull Class<T> rowType) {
+        Field[] fields = rowType.getFields();
         for (Field field : fields) {
             DbColumn column = field.getAnnotation(DbColumn.class);
             if (column != null && column.primaryKey())
-                return readToMap(cursor, rawType, field, null);
+                return readToMap(cursor, rowType, field, null);
         }
 
         throw new RuntimeException();
     }
 
     @NonNull
-    public static <K, T> HashMap<K, T> readToMap(@NonNull Cursor cursor, @NonNull Class<T> rawType, @NonNull Field keyColumn, String tableAlias) {
-        CursorReader<T> reader = new CursorReader<>(cursor, rawType, mapCursorForRawType(cursor, rawType, tableAlias));
+    public static <K, T> HashMap<K, T> readToMap(@NonNull Cursor cursor, @NonNull Class<T> rowType, @NonNull Field keyColumn, String tableAlias) {
+        CursorReader<T> reader = new CursorReader<>(cursor, rowType, mapCursorForRowType(cursor, rowType, tableAlias));
         HashMap<K, T> list = new HashMap<>(cursor.getCount());
         for (T item : reader) {
             try {
@@ -445,11 +443,11 @@ public class DbUtils {
         return list;
     }
 
-    public static <T> T readSingle(SQLiteDatabase db, Class<T> rawType, String query, String... args) {
+    public static <T> T readSingle(SQLiteDatabase db, Class<T> rowType, String query, String... args) {
         Cursor cursor = db.rawQuery(query, args);
         try {
             if (cursor.moveToFirst())
-                return readObjectFromCursor(cursor, rawType.newInstance(), mapCursorForRawType(cursor, rawType, null));
+                return readObjectFromCursor(cursor, rowType.newInstance(), mapCursorForRowType(cursor, rowType, null));
             else
                 return null;
         } catch (InstantiationException e) {
@@ -464,8 +462,8 @@ public class DbUtils {
     }
 
     @NonNull
-    public static <T> LongSparseArray<T> readToLongSparseArray(@NonNull Cursor cursor, @NonNull Class<T> rawType, @NonNull Field keyColumn, String tableAlias) {
-        CursorReader<T> reader = new CursorReader<>(cursor, rawType, mapCursorForRawType(cursor, rawType, tableAlias));
+    public static <T> LongSparseArray<T> readToLongSparseArray(@NonNull Cursor cursor, @NonNull Class<T> rowType, @NonNull Field keyColumn, String tableAlias) {
+        CursorReader<T> reader = new CursorReader<>(cursor, rowType, mapCursorForRowType(cursor, rowType, tableAlias));
         LongSparseArray<T> list = new LongSparseArray<>(cursor.getCount());
         for (T item : reader) {
             try {
@@ -501,7 +499,7 @@ public class DbUtils {
 
     @NonNull
     public static <T, R extends T> ArrayList<T> readToList(CursorWrapper<R> cursor) {
-        ArrayList<T> list = new ArrayList<T>(cursor.getCount());
+        ArrayList<T> list = new ArrayList<>(cursor.getCount());
         if (cursor.moveToFirst()) {
             do {
                 list.add(cursor.get());
@@ -510,7 +508,7 @@ public class DbUtils {
         return list;
     }
 
-    public static long count(SQLiteDatabase db, String tableName) {
+    public static int count(SQLiteDatabase db, String tableName) {
         Cursor cursor = db.rawQuery(String.format("select count(*) from %s", tableName), null);
         try {
             return cursor.moveToFirst() ? cursor.getInt(0) : 0;
@@ -537,10 +535,10 @@ public class DbUtils {
         }
     }
 
-    public static Field[] mapCursorForRawType(Cursor cursor, Class<?> rawType, String tableAlias) {
+    public static Field[] mapCursorForRowType(Cursor cursor, Class<?> rowType, String tableAlias) {
         Field[] fields = new Field[cursor.getColumnCount()];
         if (tableAlias != null)
-            for (Field field : iterateFields(rawType)) {
+            for (Field field : iterateFields(rowType)) {
                 field.setAccessible(true);
                 int columnIndex = cursor.getColumnIndex(getColumnAlias(field, tableAlias));
                 if (columnIndex >= 0) {
@@ -548,7 +546,7 @@ public class DbUtils {
                 }
             }
         else
-            for (Field field : iterateFields(rawType)) {
+            for (Field field : iterateFields(rowType)) {
                 field.setAccessible(true);
                 int columnIndex = cursor.getColumnIndex(getColumnName(field));
                 if (columnIndex >= 0) {
@@ -644,20 +642,20 @@ public class DbUtils {
     public static class CursorReader<T> implements Iterable<T> {
         private final Cursor cursor;
         private final Field[] fields;
-        private final Class<T> rawType;
+        private final Class<T> rowType;
 
-        public CursorReader(Cursor cursor, Class<T> rawType, Field[] cursorMap) {
+        public CursorReader(Cursor cursor, Class<T> rowType, Field[] cursorMap) {
             this.cursor = cursor;
-            this.rawType = rawType;
+            this.rowType = rowType;
             this.fields = cursorMap;
         }
 
-        public CursorReader(Cursor cursor, Class<T> rawType, String tableAlias) {
-            this(cursor, rawType, mapCursorForRawType(cursor, rawType, tableAlias));
+        public CursorReader(Cursor cursor, Class<T> rowType, String tableAlias) {
+            this(cursor, rowType, mapCursorForRowType(cursor, rowType, tableAlias));
         }
 
-        public CursorReader(Cursor cursor, Class<T> rawType) {
-            this(cursor, rawType, mapCursorForRawType(cursor, rawType, null));
+        public CursorReader(Cursor cursor, Class<T> rowType) {
+            this(cursor, rowType, mapCursorForRowType(cursor, rowType, null));
         }
 
         @Override
@@ -674,7 +672,7 @@ public class DbUtils {
                 public T next() {
                     //noinspection TryWithIdenticalCatches
                     try {
-                        return readObjectFromCursor(cursor, rawType.newInstance(), fields);
+                        return readObjectFromCursor(cursor, rowType.newInstance(), fields);
                     } catch (InstantiationException e) {
                         throw new RuntimeException(e);
                     } catch (IllegalAccessException e) {

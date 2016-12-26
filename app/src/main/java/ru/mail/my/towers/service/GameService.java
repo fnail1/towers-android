@@ -19,6 +19,8 @@ import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
 import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.model.Notification;
+import ru.mail.my.towers.model.NotificationType;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.model.TowerUpdateAction;
@@ -28,6 +30,7 @@ import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.api;
+import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.data;
 import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.prefs;
@@ -64,6 +67,35 @@ public class GameService {
         me = userInfo;
     }
 
+    public void start() {
+        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(this::startSync);
+    }
+
+    private void startSync() {
+        try {
+            Response<GsonGameInfoResponse> gameInfoResponse = api().getGameInfo().execute();
+            if (gameInfoResponse.code() == HttpURLConnection.HTTP_OK) {
+                GsonGameInfoResponse gameInfo = gameInfoResponse.body();
+                if (gameInfo.success) {
+                    updateMyProfile(gameInfo.info);
+                }
+            }
+
+            Response<GsonGetProfileResponse> profileResponse = api().getMyProfile().execute();
+            if (profileResponse.code() == HttpURLConnection.HTTP_OK) {
+                GsonGetProfileResponse body = profileResponse.body();
+                if (body.success) {
+                    updateMyProfile(body.profile);
+                }
+            }
+
+            loadMyTowers(me);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void updateMyProfile(GsonUserInfo data) {
         boolean exist = me._id > 0;
 
@@ -74,7 +106,6 @@ public class GameService {
             myProfileEvent.fire(me);
         }
     }
-
 
     public void updateMyProfile(GsonUserProfile data) {
         this.me.merge(data);
@@ -112,34 +143,15 @@ public class GameService {
 
     }
 
-    public void start() {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(this::startSync);
+    public void onGameNotification(String message, NotificationType type) {
+        Notification raw = new Notification();
+        raw.message = message;
+        raw.type = type;
+        raw.ts = appState().getServerTime();
+        data().notifications.insert(raw);
+        gameMessageEvent.fire(message);
     }
 
-    private void startSync() {
-        try {
-            Response<GsonGameInfoResponse> gameInfoResponse = api().getGameInfo().execute();
-            if (gameInfoResponse.code() == HttpURLConnection.HTTP_OK) {
-                GsonGameInfoResponse gameInfo = gameInfoResponse.body();
-                if (gameInfo.success) {
-                    updateMyProfile(gameInfo.info);
-                }
-            }
-
-            Response<GsonGetProfileResponse> profileResponse = api().getMyProfile().execute();
-            if (profileResponse.code() == HttpURLConnection.HTTP_OK) {
-                GsonGetProfileResponse body = profileResponse.body();
-                if (body.success) {
-                    updateMyProfile(body.profile);
-                }
-            }
-
-            loadMyTowers(me);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public boolean loadTowers(MapExtent mapExtent) throws IOException {
         int generation = prefs().getTowersGeneration() + 1;
@@ -262,11 +274,11 @@ public class GameService {
             try {
                 Response<GsonCreateTowerResponse> response = api().createTower(latitude, longitude, name).execute();
                 if (response.code() != HttpURLConnection.HTTP_OK) {
-                    gameMessageEvent.fire("Башня не постоена. Сервер вернул " + response.code());
+                    onGameNotification("Башня не постоена. Сервер вернул " + response.code(), NotificationType.ERROR );
                 } else {
                     GsonCreateTowerResponse body = response.body();
                     if (!body.success) {
-                        gameMessageEvent.fire("Башня не построена: " + body.error.message);
+                        onGameNotification("Башня не построена: " + body.error.message, NotificationType.ERROR);
                     } else {
                         me.towersCount++;
                         me.merge(body.tower.user);
@@ -276,11 +288,11 @@ public class GameService {
                         updateMyProfile(body.userInfo);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
 
-                        gameMessageEvent.fire("Башня \'" + tower.title + "\' построена");
+                        onGameNotification("Башня \'" + tower.title + "\' построена", NotificationType.SUCCESS);
                     }
                 }
             } catch (IOException e) {
-                gameMessageEvent.fire("Не удалось построить башню из-за сетевой ошибки.");
+                onGameNotification("Не удалось построить башню из-за сетевой ошибки.", NotificationType.ERROR);
             }
         });
     }
@@ -290,23 +302,23 @@ public class GameService {
             try {
                 Response<GsonDestroyTowerResponse> response = api().destroyTower(tower.serverId, TowerUpdateAction.destroy).execute();
                 if (response.code() != HttpURLConnection.HTTP_OK) {
-                    gameMessageEvent.fire("Башня устояла. Сервер вернул " + response.code());
+                    onGameNotification("Башня устояла. Сервер вернул " + response.code(), NotificationType.ERROR);
                 } else {
                     GsonDestroyTowerResponse body = response.body();
                     if (!body.success) {
-                        gameMessageEvent.fire("Башня устояла: " + body.error.message);
+                        onGameNotification("Башня устояла: " + body.error.message, NotificationType.ERROR);
                     } else {
                         me.towersCount--;
 
                         data().towers.delete(tower._id);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-                        gameMessageEvent.fire("Башня \'" + tower.title + "\' удалена");
+                        onGameNotification("Башня \'" + tower.title + "\' удалена", NotificationType.SUCCESS);
 
                         startSync();
                     }
                 }
             } catch (IOException e) {
-                gameMessageEvent.fire("Не удалось удалить башню из-за сетевой ошибки.");
+                onGameNotification("Не удалось удалить башню из-за сетевой ошибки.", NotificationType.ERROR);
             }
         });
     }
@@ -316,23 +328,21 @@ public class GameService {
             try {
                 Response<GsonUpdateTowerResponse> response = api().updateTower(tower.serverId, TowerUpdateAction.upgrade).execute();
                 if (response.code() != HttpURLConnection.HTTP_OK) {
-                    gameMessageEvent.fire("Ошибка. Сервер вернул " + response.code());
+                    onGameNotification("Ошибка. Сервер вернул " + response.code(), NotificationType.ERROR);
                 } else {
                     GsonUpdateTowerResponse body = response.body();
                     if (!body.success) {
-                        gameMessageEvent.fire("Ошибка: " + body.error.message);
+                        onGameNotification("Ошибка: " + body.error.message, NotificationType.ERROR);
                     } else {
-                        me.towersCount--;
-
                         data().towers.delete(tower._id);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-                        gameMessageEvent.fire("Башня \'" + tower.title + "\' обновлена");
+                        onGameNotification("Башня \'" + tower.title + "\' обновлена", NotificationType.SUCCESS);
 
                         startSync();
                     }
                 }
             } catch (IOException e) {
-                gameMessageEvent.fire("Не удалось прокачать башню из-за сетевой ошибки.");
+                onGameNotification("Не удалось прокачать башню из-за сетевой ошибки.", NotificationType.ERROR);
             }
         });
     }

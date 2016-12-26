@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.diagnostics.Logger;
+import ru.mail.my.towers.model.Notification;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.model.UserInfo;
@@ -39,6 +40,7 @@ public class AppDataSQLiteOpenHelper extends SQLiteOpenHelper {
         db.execSQL(DbUtils.buildCreateScript(Tower.class));
         db.execSQL(DbUtils.buildCreateScript(TowerNetwork.class));
         db.execSQL(DbUtils.buildCreateScript(UserInfo.class));
+        db.execSQL(DbUtils.buildCreateScript(Notification.class));
     }
 
     @Override

@@ -56,6 +56,10 @@
             android:name=".ui.mytowers.MyTowersActivity"
             android:theme="@style/Theme.AppCompat.Light"/>
 
+        <activity
+            android:name=".ui.notifications.NotificationsActivity"
+            android:theme="@style/Theme.AppCompat.Light"/>
+
 
         <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
      App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->

@@ -98,7 +98,7 @@ public class TowersTable extends SQLiteCommands<Tower> {
         filterLocation(sb, lat1, lng1, lat2, lng2);
 
         return new CursorWrapper<Tower>(db.rawQuery(sb.toString(), null)) {
-            Field[] towersCursorMap = DbUtils.mapCursorForRawType(cursor, Tower.class, "t");
+            Field[] towersCursorMap = DbUtils.mapCursorForRowType(cursor, Tower.class, "t");
 
             @Override
             public Tower get(Cursor cursor) {

@@ -1,5 +1,6 @@
 package ru.mail.my.towers.model.db;
 
+import android.annotation.SuppressLint;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
@@ -23,24 +24,26 @@ public abstract class SQLiteCommands<T> {
     protected final String selectAll;
     private final String selectById;
     protected final SQLiteDatabase db;
-    protected final Class<T> rawType;
+    protected final Class<T> rowType;
     private final Field primaryKey;
-    private final String rawTypeSimpleName;
+    protected final String rawTypeSimpleName;
+    private final String selectRange;
 
-    public SQLiteCommands(SQLiteDatabase db, Class<T> rawType) {
+    public SQLiteCommands(SQLiteDatabase db, Class<T> rowType) {
         this.db = db;
-        this.rawType = rawType;
-        primaryKey = DbUtils.iterateFields(rawType)
+        this.rowType = rowType;
+        primaryKey = DbUtils.iterateFields(rowType)
                 .first(f -> {
                     DbColumn a = f.getAnnotation(DbColumn.class);
                     return a != null && a.primaryKey();
                 });
-        insert = new SQLiteStatementSimpleBuilder(db, DbUtils.buildInsert(rawType, ConflictAction.IGNORE));
-        update = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(rawType));
-        delete = new SQLiteStatementSimpleBuilder(db, DbUtils.buildDelete(rawType));
-        selectAll = DbUtils.buildSelectAll(rawType);
-        selectById = DbUtils.buildSelectById(rawType);
-        rawTypeSimpleName = rawType.getSimpleName();
+        insert = new SQLiteStatementSimpleBuilder(db, DbUtils.buildInsert(rowType, ConflictAction.IGNORE));
+        update = new SQLiteStatementSimpleBuilder(db, DbUtils.buildUpdate(rowType));
+        delete = new SQLiteStatementSimpleBuilder(db, DbUtils.buildDelete(rowType));
+        selectAll = DbUtils.buildSelectAll(rowType);
+        selectRange = DbUtils.buildSelectAll(rowType) + "\n limit ? offset ? ";
+        selectById = DbUtils.buildSelectById(rowType);
+        rawTypeSimpleName = rowType.getSimpleName();
     }
 
     public long insert(T raw) {
@@ -71,27 +74,13 @@ public abstract class SQLiteCommands<T> {
 
     public T selectById(long id) {
         String[] args = {String.valueOf(id)};
-        return DbUtils.readSingle(db, rawType, selectById, args);
+        return DbUtils.readSingle(db, rowType, selectById, args);
     }
 
     public final CursorWrapper<T> selectAll() {
         logDb("SELECT ALL FROM %s", rawTypeSimpleName);
 
-        Cursor cursor = db.rawQuery(selectAll, null);
-        return new CursorWrapper<T>(cursor) {
-            Field[] map = DbUtils.mapCursorForRawType(cursor, rawType, null);
-
-            @Override
-            protected T get(Cursor cursor) {
-                try {
-                    return DbUtils.readObjectFromCursor(cursor, rawType.newInstance(), map);
-                } catch (InstantiationException e) {
-                    return null;
-                } catch (IllegalAccessException e) {
-                    return null;
-                }
-            }
-        };
+        return new SimpleCursorWrapper(db.rawQuery(selectAll, null));
     }
 
     public ArrayList toList() {
@@ -132,6 +121,38 @@ public abstract class SQLiteCommands<T> {
             return id;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public int count() {
+        return DbUtils.count(db, DbUtils.getTableName(rowType));
+    }
+
+    public CursorWrapper<T> select(int skip, int limit) {
+
+        logDb("SELECT RANGE(%d, %d) FROM %s", skip, limit, rawTypeSimpleName);
+
+        String[] args = {String.valueOf(limit), String.valueOf(skip)};
+        return new SimpleCursorWrapper(db.rawQuery(selectRange, args));
+    }
+
+    protected class SimpleCursorWrapper extends CursorWrapper<T> {
+        final Field[] map;
+
+        public SimpleCursorWrapper(Cursor cursor) {
+            super(cursor);
+            map = DbUtils.mapCursorForRowType(this.cursor, rowType, null);
+        }
+
+        @Override
+        protected T get(Cursor cursor) {
+            try {
+                return DbUtils.readObjectFromCursor(cursor, rowType.newInstance(), map);
+            } catch (InstantiationException e) {
+                return null;
+            } catch (IllegalAccessException e) {
+                return null;
+            }
         }
     }
 }

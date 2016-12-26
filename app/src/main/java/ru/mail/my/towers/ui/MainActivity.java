@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,12 +45,14 @@ import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.R;
 import ru.mail.my.towers.diagnostics.DebugUtils;
 import ru.mail.my.towers.gis.MapExtent;
+import ru.mail.my.towers.model.NotificationType;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
+import ru.mail.my.towers.ui.notifications.NotificationsActivity;
 import ru.mail.my.towers.ui.popups.CreateTowerPopup;
 import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
@@ -78,6 +81,9 @@ public class MainActivity extends BaseFragmentActivity
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
     public static final int MIN_ZOOM_PREFERENCE = 10;
     public static final int ZOOM_SHOW_ME = 18;
+    private static final int PROFILE_VALUE_NORMAL_COLOR = 0x7f000000;
+    private static final int PROFILE_VALUE_INC_COLOR = 0x7fff0000;
+    private static final int PROFILE_VALUE_DEC_COLOR = 0x7f0000ff;
 
     private final Location leftTopCorner = new Location("");
     private final Location rightBottomCorner = new Location("");
@@ -113,6 +119,9 @@ public class MainActivity extends BaseFragmentActivity
     @BindView(R.id.restore_location)
     View setLocation;
 
+    @BindView(R.id.all_notifications)
+    ImageButton allNotifications;
+
     @BindView(R.id.tower_controls)
     View towerControls;
     @BindView(R.id.destroy_tower)
@@ -139,7 +148,14 @@ public class MainActivity extends BaseFragmentActivity
     private GoogleApiClient client;
     private boolean mapControlsVisible = true;
     private Tower selectedTower;
-    public static final int HIGHTLIGHT_PROFILE_VALUE_COLOR = 0x7fff0000;
+
+
+    private int displayedLevel = -1;
+    private int displayedExp = -1;
+    private int displayedHealth = -1;
+    private int displayedArea = -1;
+    private int displayedGold = -1;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,8 +173,9 @@ public class MainActivity extends BaseFragmentActivity
         if (BuildConfig.DEBUG) {
             mapObjectsView.setMapObjectLongClickListener(this::onMapObjectsViewLongClick);
         }
-    }
 
+        allNotifications.setImageResource(R.drawable.ic_notifications_none);
+    }
 
     @Override
     protected void onResume() {
@@ -418,6 +435,12 @@ public class MainActivity extends BaseFragmentActivity
         startActivity(new Intent(this, MyTowersActivity.class));
     }
 
+    @OnClick(R.id.all_notifications)
+    protected void onAllNotificationClick() {
+        startActivity(new Intent(this, NotificationsActivity.class));
+        allNotifications.setImageResource(R.drawable.ic_notifications_none);
+    }
+
     @Override
     public void onPopupResult(IMapPopup popup) {
         popups.remove(popup);
@@ -449,7 +472,10 @@ public class MainActivity extends BaseFragmentActivity
 
     @Override
     public void onGameNewMessage(String args) {
-        runOnUiThread(() -> Toast.makeText(this, args, Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> {
+            Toast.makeText(this, args, Toast.LENGTH_SHORT).show();
+            allNotifications.setImageResource(R.drawable.ic_notifications_active);
+        });
     }
 
     @Override
@@ -505,7 +531,6 @@ public class MainActivity extends BaseFragmentActivity
         }
     }
 
-
     private void animateAppearance(View view, int duration) {
         view.setVisibility(View.VISIBLE);
         view.setAlpha(0);
@@ -535,32 +560,58 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     public void onMyProfileChanged(UserInfo args) {
         runOnUiThread(() -> {
-            updateProfileValue(this.profileLv, "LV: " + (args.currentLevel + 1));
-            updateProfileValue(profileXp, "XP: " + args.exp + "/" + args.nextExp);
-            updateProfileValue(profileHp, "HP: " + args.currentHealth() + "/" + args.health.max);
-            updateProfileValue(profileAr, "AR: " + Math.round(args.area));
-            updateProfileValue(profileGd, "GD: " + args.currentGold());
+            int level = args.currentLevel + 1;
+            updateProfileValue(profileLv, displayedLevel, level, "LV: " + level);
+            displayedLevel = level;
+
+            int exp = args.exp;
+            updateProfileValue(profileXp, displayedExp, exp, "XP: " + exp + "/" + args.nextExp);
+            displayedExp = exp;
+
+            int health = args.currentHealth();
+            updateProfileValue(profileHp, displayedHealth, health, "HP: " + health + "/" + args.health.max);
+            displayedHealth = health;
+
+            int area = (int) Math.round(args.area);
+            updateProfileValue(profileAr, displayedArea, area, "AR: " + area);
+            displayedArea = area;
+
+
+            int gold = args.currentGold();
+            updateProfileValue(profileGd, displayedGold, gold, "GD: " + gold);
+            displayedGold = gold;
+
             buildTowerInfo.setText("" + args.createCost + " GD, +10 XP");
         });
     }
 
-    public void updateProfileValue(TextView textView, String text) {
-        if (textView.length() == 0) {
+    public void updateProfileValue(TextView textView, int displayedValue, int newValue, String text) {
+        if (displayedValue < 0) {
             textView.setText(text);
-        } else if (!textView.getText().equals(text)) {
+        } else if (displayedValue != newValue) {
             textView.setText(text);
-            int color = textView.getCurrentTextColor();
-            textView.setTextColor(HIGHTLIGHT_PROFILE_VALUE_COLOR);
+            int color = PROFILE_VALUE_NORMAL_COLOR;
+            int highlight;
+            if (newValue > displayedValue) {
+                highlight = PROFILE_VALUE_INC_COLOR;
+                game().onGameNotification(text + " (+" + (newValue - displayedValue) + ") ", NotificationType.INFO);
+            } else {
+                highlight = PROFILE_VALUE_DEC_COLOR;
+                game().onGameNotification(text + " (" + (newValue - displayedValue) + ") ", NotificationType.INFO);
+            }
+            textView.setTextColor(highlight);
 
             Animation animation = new Animation() {
                 @Override
                 protected void applyTransformation(float alpha, Transformation t) {
                     super.applyTransformation(alpha, t);
-                    textView.setTextColor(Utils.mulColors(HIGHTLIGHT_PROFILE_VALUE_COLOR, color, alpha));
+                    textView.setTextColor(Utils.mulColors(highlight, color, alpha));
                 }
             };
             animation.setDuration(1200);
             textView.startAnimation(animation);
+
+
         }
     }
 

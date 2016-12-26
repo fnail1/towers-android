@@ -105,7 +105,7 @@ public class NetworksTable extends SQLiteCommands<TowerNetwork> {
         Cursor cursor = db.rawQuery(selectById, new String[]{"1"});
         CursorWrapper<TowerNetwork> wrapper = new CursorWrapper<TowerNetwork>(cursor) {
 
-            private Field[] map = DbUtils.mapCursorForRawType(cursor, TowerNetwork.class, null);
+            private Field[] map = DbUtils.mapCursorForRowType(cursor, TowerNetwork.class, null);
 
             @Override
             protected TowerNetwork get(Cursor cursor) {

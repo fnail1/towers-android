@@ -20,11 +20,16 @@ import com.google.android.gms.maps.model.LatLng;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 import java.util.UUID;
 
 import static ru.mail.my.towers.TowersApp.app;
 
 public final class Utils {
+    private static SimpleDateFormat dateLongFormatWithYear = new SimpleDateFormat("d MMMM yyyy", Locale.getDefault());
+
 
     private Utils() {
     }
@@ -287,5 +292,9 @@ public final class Utils {
 
     public static String formatNetworkLevel(float level) {
         return Float.toString((float) Math.round((level + 1) * 10) / 10);
+    }
+
+    public static String formatDate(Calendar calendar) {
+        return dateLongFormatWithYear.format(calendar.getTime());
     }
 }

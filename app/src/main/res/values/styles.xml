@@ -81,6 +81,28 @@
         <item name="android:textStyle">normal</item>
     </style>
 
+    <style name="CommonListItemSubtitleTextAppearance">
+        <item name="android:textSize">8pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">#7f000000</item>
+    </style>
+
+    <style name="CommonListItemContentTextAppearance">
+        <item name="android:textSize">8pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">#7f000000</item>
+    </style>
+
+    <style name="CommonListItemMinorTextAppearance">
+        <item name="android:textSize">6pt</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">#7f000000</item>
+    </style>
+
+
     <style name="MapProfileValueTextAppearance">
         <item name="android:textSize">6pt</item>
         <item name="android:fontFamily">sans-serif-medium</item>
