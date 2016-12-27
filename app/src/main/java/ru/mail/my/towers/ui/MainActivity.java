@@ -176,6 +176,8 @@ public class MainActivity extends BaseFragmentActivity
     protected void onResume() {
         super.onResume();
 
+        toastsEngine = new CustomToastsEngine(mapControls);
+
         if (prefs().getAccessToken() == null) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
@@ -194,7 +196,6 @@ public class MainActivity extends BaseFragmentActivity
         game().geoDataChangedEvent.add(this);
         updateProfileLoop();
 
-        toastsEngine = new CustomToastsEngine(mapControls);
 
 //        handler.postDelayed(new Runnable() {
 //            int counter = 1;
@@ -419,7 +420,7 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.attack_tower)
     protected void onAttackTowerClick() {
-
+        game().attack(selectedTower);
     }
 
     @OnClick(R.id.tower_owner_info)
@@ -456,23 +457,7 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     public void onGameNewMessage(Notification notification) {
         runOnUiThread(() -> {
-            int foreColor;
-            switch (notification.type) {
-                case SUCCESS:
-                    foreColor = Utils.getColor(this, R.color.colorNotificationSuccess);
-                    break;
-                case ERROR:
-                    foreColor = Utils.getColor(this, R.color.colorNotificationError);
-                    break;
-                case INFO:
-                    foreColor = Utils.getColor(this, R.color.colorNotificationInfo);
-                    break;
-                case ALARM:
-                    foreColor = Utils.getColor(this, R.color.colorNotificationAlarm);
-                    break;
-                default:
-                    throw new IllegalArgumentException(String.valueOf(notification.type));
-            }
+            int foreColor = notification.type.getTextColor(this);
             toastsEngine.showMessage(notification.message, 4000, foreColor, 0x7f000000);
             allNotifications.setImageResource(R.drawable.ic_notifications_active);
         });

@@ -42,6 +42,8 @@ import static ru.mail.my.towers.TowersApp.prefs;
 
 public interface TowersGameApi {
     String BASE_URL = "http://levchurakov.com:5590/api/v1/";
+    String START = "start";
+    String STOP = "stop";
 
     /**
      * Запрос СМС с кодом
@@ -145,16 +147,23 @@ public interface TowersGameApi {
     /**
      * Башни. Битва. Атаковать
      */
-    @POST("towers/{towerId}/battle?action=start")
+    @POST("towers/{towerId}/battle")
     @FormUrlEncoded
-    Call<GsonAttackResponse> attack(@Path("towerId") long towerId);
+    Call<GsonAttackResponse> attack(@Path("towerId") long towerId, @Field("action") String start);
 
     /**
      * Башни. Битва. Отступить
      */
-    @POST("towers/{towerId}/battle?action=stop&win=false")
+    @POST("towers/{towerId}/battle")
     @FormUrlEncoded
-    Call<GsonRetreatResponse> retreat(@Path("towerId") long towerId);
+    Call<GsonRetreatResponse> lose(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _false);
+
+    /**
+     * Башни. Битва. Победить
+     */
+    @POST("towers/{towerId}/battle")
+    @FormUrlEncoded
+    Call<GsonRetreatResponse> win(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _true);
 
     /**
      * Статистика. Топ игроков

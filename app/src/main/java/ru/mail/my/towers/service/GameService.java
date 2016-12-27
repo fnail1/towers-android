@@ -1,17 +1,23 @@
 package ru.mail.my.towers.service;
 
 import android.location.Location;
+import android.util.LongSparseArray;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Response;
+import ru.mail.my.towers.api.TowersGameApi;
+import ru.mail.my.towers.api.model.GsonAttackResponse;
+import ru.mail.my.towers.api.model.GsonBattleInfo;
 import ru.mail.my.towers.api.model.GsonCreateTowerResponse;
 import ru.mail.my.towers.api.model.GsonDestroyTowerResponse;
 import ru.mail.my.towers.api.model.GsonGameInfoResponse;
 import ru.mail.my.towers.api.model.GsonGetProfileResponse;
 import ru.mail.my.towers.api.model.GsonMyTowersResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
+import ru.mail.my.towers.api.model.GsonRetreatResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
@@ -59,6 +65,8 @@ public class GameService {
         }
     };
 
+    private final LongSparseArray<GsonBattleInfo> towersUnderAttack = new LongSparseArray<>();
+
     public GameService(Preferences preferences, AppData data) {
         UserInfo userInfo = data.users.select(preferences.getMeDbId());
         if (userInfo == null) {
@@ -97,11 +105,11 @@ public class GameService {
     }
 
     public void updateMyProfile(GsonUserInfo data) {
-        boolean exist = me._id > 0;
+        synchronized (me) {
+            me.merge(data);
+        }
 
-        this.me.merge(data);
-
-        if (exist) {
+        if (me._id > 0) {
             data().users.save(me);
             myProfileEvent.fire(me);
         }
@@ -274,7 +282,7 @@ public class GameService {
             try {
                 Response<GsonCreateTowerResponse> response = api().createTower(latitude, longitude, name).execute();
                 if (response.code() != HttpURLConnection.HTTP_OK) {
-                    onGameNotification("Башня не постоена. Сервер вернул " + response.code(), NotificationType.ERROR );
+                    onGameNotification("Башня не постоена. Сервер вернул " + response.code(), NotificationType.ERROR);
                 } else {
                     GsonCreateTowerResponse body = response.body();
                     if (!body.success) {
@@ -345,6 +353,143 @@ public class GameService {
                 onGameNotification("Не удалось прокачать башню из-за сетевой ошибки.", NotificationType.ERROR);
             }
         });
+    }
+
+
+    public void attack(Tower tower) {
+        int i;
+        GsonBattleInfo battleInfo = null;
+        synchronized (towersUnderAttack) {
+            i = towersUnderAttack.indexOfKey(tower._id);
+            if (i >= 0)
+                battleInfo = towersUnderAttack.valueAt(i);
+        }
+
+        if (battleInfo != null) {
+            hitTower(tower, battleInfo);
+            return;
+        }
+
+        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
+            try {
+                Response<GsonAttackResponse> response = api().attack(tower.serverId, TowersGameApi.START).execute();
+                if (response.code() != HttpURLConnection.HTTP_OK) {
+                    onGameNotification("Атака захлебнулась из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
+                    return;
+                }
+
+                GsonAttackResponse body = response.body();
+                if (!body.success) {
+                    onGameNotification("Атака захлебнулась: " + body.error, NotificationType.ERROR);
+                    return;
+                }
+
+                synchronized (towersUnderAttack) {
+                    towersUnderAttack.put(tower._id, body.battleInfo);
+                }
+                hitTower(tower, body.battleInfo);
+                BattleTowerAttackTask battleTask = new BattleTowerAttackTask(tower);
+                battleTask.run();
+            } catch (IOException e) {
+                onGameNotification("Атака захлебнулась из-за сетевой ошибки", NotificationType.ERROR);
+            }
+        });
+
+    }
+
+    private void hitTower(Tower tower, GsonBattleInfo battleInfo) {
+        if (tower.health <= 0)
+            return;
+
+        onGameNotification("Атака наносит башне урон " + battleInfo.playerAttack, NotificationType.INFO);
+
+        if (tower.health > battleInfo.playerAttack) {
+            tower.health = 0;
+
+            synchronized (towersUnderAttack) {
+                int i = towersUnderAttack.indexOfKey(tower._id);
+                if (i < 0)
+                    return;
+                towersUnderAttack.removeAt(i);
+            }
+
+            ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
+                try {
+                    Response<GsonRetreatResponse> response = api().win(tower.serverId, TowersGameApi.STOP, true).execute();
+                    if (response.code() != HttpURLConnection.HTTP_OK) {
+                        onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
+                    } else if (!response.body().success) {
+                        onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.body().error.message, NotificationType.ERROR);
+                    } else {
+                        onGameNotification("Мы победили", NotificationType.GOOD_NEWS);
+                        updateMyProfile(response.body().userInfo);
+                    }
+                } catch (IOException e) {
+                    onGameNotification("Похоже, мы победили, но результат неизвестен из-за сетевой ошибки", NotificationType.ERROR);
+                }
+                data().towers.delete(tower._id);
+                geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+            });
+        } else {
+            tower.health -= battleInfo.playerAttack;
+            data().towers.save(tower, prefs().getTowersGeneration());
+            geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+        }
+
+    }
+
+    private class BattleTowerAttackTask implements Runnable {
+        private final Tower tower;
+
+        private BattleTowerAttackTask(Tower tower) {
+            this.tower = tower;
+        }
+
+        @Override
+        public void run() {
+            GsonBattleInfo battleInfo;
+            synchronized (towersUnderAttack) {
+                int i = towersUnderAttack.indexOfKey(tower._id);
+                if (i < 0)
+                    return;
+                battleInfo = towersUnderAttack.valueAt(i);
+            }
+
+            onGameNotification("Башня наносит " + battleInfo.towerAttack + " урона", NotificationType.INFO);
+
+            synchronized (me) {
+                if (me.health.current <= battleInfo.towerAttack) {
+                    me.health.current = 0;
+                } else {
+                    me.health.current -= battleInfo.towerAttack;
+                }
+            }
+
+            if (me.health.current <= 0) {
+                synchronized (towersUnderAttack) {
+                    towersUnderAttack.remove(tower._id);
+                }
+                onGameNotification("Бой проигран", NotificationType.BAD_NEWS);
+
+//                try {
+//                    Response<GsonRetreatResponse> response = api().lose(tower.serverId, TowersGameApi.STOP, false).execute();
+//                    if (response.code() != HttpURLConnection.HTTP_OK) {
+//                        onGameNotification("Бой, похоже, проигран, но результат неизвестен из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
+//                    } else if (!response.body().success) {
+//                        onGameNotification("Бой, похоже, проигран, но результат неизвестен из-за ошибки сервера: " + response.body().error.message, NotificationType.ERROR);
+//                    } else {
+//                        onGameNotification("Бой проигран", NotificationType.BAD_NEWS);
+//                        updateMyProfile(response.body().userInfo);
+//                    }
+//                } catch (IOException e) {
+//                    onGameNotification("Бой, похоже, проигран, но результат неизвестен из-за сетевой ошибки", NotificationType.ERROR);
+//                }
+            } else {
+                ThreadPool.SCHEDULER.schedule(this, battleInfo.towerAttackFrequency, TimeUnit.SECONDS);
+            }
+            data().users.save(me);
+            myProfileEvent.fire(me);
+        }
     }
 
     public interface MyProfileEventHandler {

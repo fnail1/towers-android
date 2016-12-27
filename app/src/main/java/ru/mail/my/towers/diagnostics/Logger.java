@@ -12,7 +12,7 @@ public class Logger {
     public static final boolean LOG_ERRORS = true;
     public static final boolean LOG_VERBOSE = BuildConfig.DEBUG;
     public static final boolean LOG_DEBUG = BuildConfig.DEBUG;
-    public static final boolean LOG_DB = LOG_VERBOSE;
+    public static final boolean LOG_DB = false;
 
 
     private static final boolean LOG_LOCATION = LOG_DEBUG;

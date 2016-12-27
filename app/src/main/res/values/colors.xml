@@ -12,5 +12,7 @@
     <color name="colorNotificationSuccess">#7f009f00</color>
     <color name="colorNotificationError">#7f9f0000</color>
     <color name="colorNotificationInfo">#7f000000</color>
+    <color name="colorNotificationGoodNews">#7f20fe20</color>
+    <color name="colorNotificationBadNews">#7ffe2020</color>
     <color name="colorNotificationAlarm">#7f00009f</color>
 </resources>
