@@ -16,11 +16,11 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -31,18 +31,17 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
-import java.util.Random;
-import java.util.Stack;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
 import ru.mail.my.towers.BuildConfig;
 import ru.mail.my.towers.R;
@@ -57,8 +56,6 @@ import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
 import ru.mail.my.towers.ui.notifications.NotificationsActivity;
-import ru.mail.my.towers.ui.popups.CreateTowerPopup;
-import ru.mail.my.towers.ui.popups.IMapPopup;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
 import ru.mail.my.towers.utils.Utils;
 
@@ -75,25 +72,18 @@ public class MainActivity extends BaseFragmentActivity
         implements OnMapReadyCallback,
                    LocationAppService.LocationChangedEventHandler,
                    GoogleMap.OnCameraMoveListener,
-//                   MapObjectsService.MapObjectsLoadingCompleteEventHandler,
-                   IMapPopup.IMapActivity,
                    GameService.GameMessageEventHandler,
                    MapObjectsView.MapObjectClickListener, GameService.MyProfileEventHandler,
                    GameService.TowersGeoDataChanged {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
-    public static final int MIN_ZOOM_PREFERENCE = 10;
+    public static final int MIN_ZOOM_PREFERENCE = 12;
     public static final int ZOOM_SHOW_ME = 18;
     private static final int PROFILE_VALUE_NORMAL_COLOR = 0x7f000000;
     private static final int PROFILE_VALUE_INC_COLOR = 0x7fff0000;
     private static final int PROFILE_VALUE_DEC_COLOR = 0x7f0000ff;
 
-    private final Location leftTopCorner = new Location("");
-    private final Location rightBottomCorner = new Location("");
-    private final Location center = new Location("");
-    private final Point point = new Point();
-    private final Stack<IMapPopup> popups = new Stack<>();
     private final Handler handler = new Handler();
 
     private GoogleMap map;
@@ -231,10 +221,6 @@ public class MainActivity extends BaseFragmentActivity
         game().myProfileEvent.remove(this);
         game().geoDataChangedEvent.remove(this);
 
-        while (!popups.isEmpty())
-            popups.pop().close();
-        restoreMapControls(false);
-
         super.onPause();
     }
 
@@ -258,10 +244,7 @@ public class MainActivity extends BaseFragmentActivity
 
     @Override
     public void onBackPressed() {
-        if (!popups.isEmpty()) {
-            IMapPopup popup = popups.pop();
-            popup.close();
-        } else if (settingsPanel.getVisibility() != View.GONE) {
+        if (settingsPanel.getVisibility() != View.GONE) {
             settingsPanel.setVisibility(View.GONE);
         } else {
             super.onBackPressed();
@@ -287,7 +270,9 @@ public class MainActivity extends BaseFragmentActivity
     public void onMapReady(GoogleMap googleMap) {
         trace();
         map = googleMap;
-//        map.setMinZoomPreference(MIN_ZOOM_PREFERENCE);
+        if (!prefs().freeScrollEnabled()) {
+            map.setMinZoomPreference(MIN_ZOOM_PREFERENCE);
+        }
         map.setOnCameraMoveListener(this);
         if (resumed) {
             onReady();
@@ -321,42 +306,48 @@ public class MainActivity extends BaseFragmentActivity
         currentLocationMarker.setPosition(pos);
         if (appState().displayCurrentLocation()) {
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, ZOOM_SHOW_ME));
-            onCameraMove();
+        } else {
+            map.moveCamera(CameraUpdateFactory.newLatLng(pos));
+        }
+        onCameraMove();
+
+
+        if (!prefs().freeScrollEnabled()) {
+            double lat1 = Utils.offsetLatitude(args.getLatitude(), -2500);
+            double lng1 = Utils.offsetLongitude(args.getLatitude(), args.getLongitude(), -2500);
+            double lat2 = Utils.offsetLatitude(args.getLatitude(), 2500);
+            double lng2 = Utils.offsetLongitude(args.getLatitude(), args.getLongitude(), 2500);
+
+            LatLng latLng1 = new LatLng(lat1, lng1);
+            LatLng latLng2 = new LatLng(lat2, lng2);
+            map.setLatLngBoundsForCameraTarget(new LatLngBounds(latLng1, latLng2));
         }
     }
 
     @Override
     public void onCameraMove() {
         trace();
-        Projection projection = map.getProjection();
-        point.set(-50, -50);
-        LatLng latLng = projection.fromScreenLocation(point);
-        leftTopCorner.setLongitude(latLng.longitude);
-        leftTopCorner.setLatitude(latLng.latitude);
-
-        point.set(mapObjectsView.getWidth() / 2, mapObjectsView.getHeight() / 2);
-        latLng = projection.fromScreenLocation(point);
-        center.setLongitude(latLng.longitude);
-        center.setLatitude(latLng.latitude);
-        center.setTime(System.currentTimeMillis());
-
-        point.set(mapObjectsView.getWidth() + 50, mapObjectsView.getHeight() + 50);
-        latLng = projection.fromScreenLocation(point);
-        rightBottomCorner.setLongitude(latLng.longitude);
-        rightBottomCorner.setLatitude(latLng.latitude);
-
-
         mapObjectsView.onCameraMove(map);
-
-        for (IMapPopup popup : popups) {
-            if (popup instanceof CreateTowerPopup)
-                ((CreateTowerPopup) popup).setLocation(center);
-        }
     }
 
     @OnClick(R.id.settings)
     protected void onSettingsClick(View view) {
         settingsPanel.setVisibility(View.VISIBLE);
+        ((CheckBox) settingsPanel.findViewById(R.id.free_scroll)).setChecked(!prefs().freeScrollEnabled());
+    }
+
+    @OnCheckedChanged(R.id.free_scroll)
+    protected void onFreeScrollCheckedChanged() {
+        boolean freeScrollEnabled = !((CheckBox) settingsPanel.findViewById(R.id.free_scroll)).isChecked();
+        prefs().setFreeScrollEnabled(freeScrollEnabled);
+
+        if (freeScrollEnabled) {
+            map.setLatLngBoundsForCameraTarget(null);
+            map.resetMinMaxZoomPreference();
+        } else {
+            map.setMinZoomPreference(MIN_ZOOM_PREFERENCE);
+            onLocationChanged(location(), location().currentLocation());
+        }
     }
 
     @OnClick(R.id.current_location)
@@ -460,35 +451,6 @@ public class MainActivity extends BaseFragmentActivity
     protected void onAllNotificationClick() {
         startActivity(new Intent(this, NotificationsActivity.class));
         allNotifications.setImageResource(R.drawable.ic_notifications_none);
-    }
-
-    @Override
-    public void onPopupResult(IMapPopup popup) {
-        popups.remove(popup);
-        restoreMapControls(true);
-    }
-
-    private void restoreMapControls(boolean animated) {
-        if (popups.isEmpty() && !mapControlsVisible) {
-            mapControlsVisible = true;
-            if (animated) {
-                mapControls.animate()
-                        .alpha(1)
-                        .setDuration(200);
-            } else {
-                mapControls.setAlpha(1);
-            }
-        }
-    }
-
-
-    private void hideMapControls() {
-        if (!popups.isEmpty() && mapControlsVisible) {
-            mapControlsVisible = false;
-            mapControls.animate()
-                    .alpha(0)
-                    .setDuration(200);
-        }
     }
 
     @Override

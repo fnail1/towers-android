@@ -18,6 +18,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.util.ArrayList;
 
+import okhttp3.internal.Util;
 import ru.mail.my.towers.gis.layers.Layer;
 import ru.mail.my.towers.gis.layers.NetworksPointLayer;
 import ru.mail.my.towers.gis.layers.TowersPolygonLayer;
@@ -26,6 +27,7 @@ import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
 import ru.mail.my.towers.toolkit.ExclusiveExecutor2;
 import ru.mail.my.towers.toolkit.ThreadPool;
+import ru.mail.my.towers.utils.Utils;
 
 public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMapEngine {
     private static final double SCALE_DETAILED = 5.0;
@@ -115,6 +117,13 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
 
         dataLoader.requestData(mapExtent);
         buildDataExecutor.execute(false);
+
+        double d2 = Utils.distance2(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
+        double d = Utils.distance(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
+        Log.d("TEST", "d0 = " + d2 +
+                ", d1 = " + d +
+                ", err = " + (d - d2) +
+                ", err = " + (d - d2) / d);
     }
 
     public void onDraw(Canvas canvas) {

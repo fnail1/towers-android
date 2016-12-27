@@ -1,6 +1,6 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:map="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -195,8 +195,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:background="@drawable/bg_map_button_gray"
+                android:padding="4dp"
                 >
 
                 <TextView
@@ -213,8 +213,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:background="@drawable/bg_map_button_green"
+                android:padding="4dp"
                 >
 
                 <TextView
@@ -233,8 +233,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:background="@drawable/bg_map_button_green"
+                android:padding="4dp"
                 >
 
                 <TextView
@@ -252,8 +252,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:background="@drawable/bg_map_button_green"
+                android:padding="4dp"
                 >
 
                 <TextView
@@ -270,8 +270,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="4dp"
-                android:padding="4dp"
                 android:background="@drawable/bg_map_button_green"
+                android:padding="4dp"
                 >
 
                 <TextView
@@ -315,6 +315,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="выход"/>
+
+            <CheckBox
+                android:id="@+id/free_scroll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ограничения"
+                android:textColor="#ffffffff"
+                android:buttonTint="#ffffffff"/>
         </LinearLayout>
 
     </RelativeLayout>

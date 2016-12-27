@@ -297,4 +297,55 @@ public final class Utils {
     public static String formatDate(Calendar calendar) {
         return dateLongFormatWithYear.format(calendar.getTime());
     }
+
+    public static double distance(double lat1, double lng1, double lat2, double lng2) {
+//      Удельное расстояние по меридиану(УРМ).Одно не изменно для любой точки земного шара.
+//      УРМ = Окружность земли / 360 градусов.
+//      УРМ = Радиус земли * 2 * Пи / 360 градусов.
+//      УРМ = 6371 км * 2 * Пи / 360 градусов = 111, 194926645 км / градус.
+//        double M = 6378137.0 * 2 * Math.PI / 360;
+//        double M = 111194.926645;
+        double M = 111319.49079327358;
+
+//      Удельное расстояние по паралели(УРП). Оно будет иметь разное значение для для разных широт.
+//
+//      УРП = Окружность по паралели / 360 градусов.
+//      Для вычисления окружности по паралели нам необходимо знать ее радиус, у для радиуса — широту данной паралели.
+//      Радиус паралели = Радиус земли * cos( Широты ).
+//      Отсюда,
+//      УРП = Радиус земли * cos( Широты )  * 2 * Пи / 360 градусов.
+//      Можно упростить. «cos( Широты ) * ( Радиус земли * 2 * Пи / 360 градусов)«. Вторая  часть нам уже известна. Получается:
+//      УРП = cos( Широты ) * УРМ.
+//        double P0 = 6356752.3142 * 2 * Math.PI / 360;
+        double P0 = 110946.25761655909;
+        double P = Math.cos(lat1) * P0;
+
+//      Далее по теореме пифагора
+        double dlat = (lat1 - lat2) * M;
+        double dlng = (lng1 - lng2) * P;
+
+        return Math.sqrt(dlat * dlat + dlng * dlng);
+    }
+
+    public static double offsetLatitude(double lat, double offset) {
+        double M = 111319.49079327358;
+        return lat + offset / M;
+    }
+
+    public static double offsetLongitude(double lat, double lng, double offset) {
+        double P0 = 110946.25761655909;
+        double P = Math.cos(lat) * P0;
+        return lng + offset / P;
+    }
+
+    public static double distance2(double lat1, double lng1, double lat2, double lng2) {
+        Location p1 = new Location("");
+        p1.setLatitude(lat1);
+        p1.setLongitude(lng1);
+        Location p2 = new Location("");
+        p2.setLatitude(lat2);
+        p2.setLongitude(lng2);
+
+        return p1.distanceTo(p2);
+    }
 }
