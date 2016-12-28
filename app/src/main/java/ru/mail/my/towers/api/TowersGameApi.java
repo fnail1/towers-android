@@ -30,7 +30,7 @@ import ru.mail.my.towers.api.model.GsonMyTowersResponse;
 import ru.mail.my.towers.api.model.GsonNotificationsResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
 import ru.mail.my.towers.api.model.GsonRequestAuthResponse;
-import ru.mail.my.towers.api.model.GsonRetreatResponse;
+import ru.mail.my.towers.api.model.GsonButtleResultsResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfoRespomse;
 import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
@@ -156,14 +156,14 @@ public interface TowersGameApi {
      */
     @POST("towers/{towerId}/battle")
     @FormUrlEncoded
-    Call<GsonRetreatResponse> lose(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _false);
+    Call<GsonButtleResultsResponse> lose(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _false);
 
     /**
      * Башни. Битва. Победить
      */
     @POST("towers/{towerId}/battle")
     @FormUrlEncoded
-    Call<GsonRetreatResponse> win(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _true);
+    Call<GsonButtleResultsResponse> win(@Path("towerId") long towerId, @Field("action") String stop, @Field("win") boolean _true);
 
     /**
      * Статистика. Топ игроков

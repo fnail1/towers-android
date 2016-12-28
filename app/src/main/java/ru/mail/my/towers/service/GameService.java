@@ -17,13 +17,14 @@ import ru.mail.my.towers.api.model.GsonGameInfoResponse;
 import ru.mail.my.towers.api.model.GsonGetProfileResponse;
 import ru.mail.my.towers.api.model.GsonMyTowersResponse;
 import ru.mail.my.towers.api.model.GsonPutProfileResponse;
-import ru.mail.my.towers.api.model.GsonRetreatResponse;
+import ru.mail.my.towers.api.model.GsonButtleResultsResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
 import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
 import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
 import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
 import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
+import ru.mail.my.towers.diagnostics.Logger;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Notification;
 import ru.mail.my.towers.model.NotificationType;
@@ -58,10 +59,17 @@ public class GameService {
         }
     };
 
-    public final ObservableEvent<TowersGeoDataChanged, GameService, MapExtent> geoDataChangedEvent = new ObservableEvent<TowersGeoDataChanged, GameService, MapExtent>(this) {
+    public final ObservableEvent<TowersGeoDataChangedEventHandler, GameService, MapExtent> geoDataChangedEvent = new ObservableEvent<TowersGeoDataChangedEventHandler, GameService, MapExtent>(this) {
         @Override
-        protected void notifyHandler(TowersGeoDataChanged handler, GameService sender, MapExtent args) {
+        protected void notifyHandler(TowersGeoDataChangedEventHandler handler, GameService sender, MapExtent args) {
             handler.onTowersGeoDataChanged(args);
+        }
+    };
+
+    public final ObservableEvent<TowerDeleteEventHandler, GameService, Tower> deleteTowerEvent = new ObservableEvent<TowerDeleteEventHandler, GameService, Tower>(this) {
+        @Override
+        protected void notifyHandler(TowerDeleteEventHandler handler, GameService sender, Tower args) {
+            handler.onTowerDelete(args);
         }
     };
 
@@ -152,6 +160,8 @@ public class GameService {
     }
 
     public void onGameNotification(String message, NotificationType type) {
+        Logger.logNotification(message, type);
+
         Notification raw = new Notification();
         raw.message = message;
         raw.type = type;
@@ -162,6 +172,9 @@ public class GameService {
 
 
     public boolean loadTowers(MapExtent mapExtent) throws IOException {
+        if (towersUnderAttack.size() > 0)
+            return false;
+
         int generation = prefs().getTowersGeneration() + 1;
         Response<GsonTowersInfoResponse> response = api().getTowersInfo(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2).execute();
         if (response.code() != HttpURLConnection.HTTP_OK)
@@ -319,6 +332,7 @@ public class GameService {
                         me.towersCount--;
 
                         data().towers.delete(tower._id);
+                        deleteTowerEvent.fire(tower);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
                         onGameNotification("Башня \'" + tower.title + "\' удалена", NotificationType.SUCCESS);
 
@@ -342,11 +356,12 @@ public class GameService {
                     if (!body.success) {
                         onGameNotification("Ошибка: " + body.error.message, NotificationType.ERROR);
                     } else {
-                        data().towers.delete(tower._id);
+                        tower.merge(body.tower);
+                        data().towers.save(tower);
                         geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-                        onGameNotification("Башня \'" + tower.title + "\' обновлена", NotificationType.SUCCESS);
 
-                        startSync();
+                        updateMyProfile(body.userInfo);
+                        onGameNotification("Башня \'" + tower.title + "\' обновлена", NotificationType.SUCCESS);
                     }
                 }
             } catch (IOException e) {
@@ -356,7 +371,7 @@ public class GameService {
     }
 
 
-    public void attack(Tower tower) {
+    public void attackTower(Tower tower) {
         int i;
         GsonBattleInfo battleInfo = null;
         synchronized (towersUnderAttack) {
@@ -401,9 +416,10 @@ public class GameService {
         if (tower.health <= 0)
             return;
 
-        onGameNotification("Атака наносит башне урон " + battleInfo.playerAttack, NotificationType.INFO);
 
-        if (tower.health > battleInfo.playerAttack) {
+        if (tower.health <= battleInfo.playerAttack) {
+            onGameNotification("Побееда ", NotificationType.INFO);
+            onGameNotification("Атака наносит башне урон " + tower.health + " (0)", NotificationType.INFO);
             tower.health = 0;
 
             synchronized (towersUnderAttack) {
@@ -413,25 +429,28 @@ public class GameService {
                 towersUnderAttack.removeAt(i);
             }
 
+            data().towers.delete(tower._id);
+            deleteTowerEvent.fire(tower);
+            geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+
             ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
                 try {
-                    Response<GsonRetreatResponse> response = api().win(tower.serverId, TowersGameApi.STOP, true).execute();
+                    Response<GsonButtleResultsResponse> response = api().win(tower.serverId, TowersGameApi.STOP, true).execute();
                     if (response.code() != HttpURLConnection.HTTP_OK) {
                         onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
                     } else if (!response.body().success) {
                         onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.body().error.message, NotificationType.ERROR);
                     } else {
                         onGameNotification("Мы победили", NotificationType.GOOD_NEWS);
-                        updateMyProfile(response.body().userInfo);
+                        updateMyProfile(response.body().info);
                     }
                 } catch (IOException e) {
                     onGameNotification("Похоже, мы победили, но результат неизвестен из-за сетевой ошибки", NotificationType.ERROR);
                 }
-                data().towers.delete(tower._id);
-                geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
             });
         } else {
             tower.health -= battleInfo.playerAttack;
+            onGameNotification("Атака наносит башне урон " + battleInfo.playerAttack + " (" + tower.health + ")", NotificationType.INFO);
             data().towers.save(tower, prefs().getTowersGeneration());
             geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
         }
@@ -510,7 +529,11 @@ public class GameService {
         void onGameNewMessage(Notification args);
     }
 
-    public interface TowersGeoDataChanged {
+    public interface TowersGeoDataChangedEventHandler {
         void onTowersGeoDataChanged(MapExtent extent);
+    }
+
+    public interface TowerDeleteEventHandler {
+        void onTowerDelete(Tower tower);
     }
 }

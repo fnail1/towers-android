@@ -70,6 +70,17 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
     public long owner;
 
     public Tower(GsonTowerInfo towerInfo, UserInfo owner) {
+        merge(towerInfo);
+        this.color = owner.color;
+        this.owner = owner._id;
+    }
+
+    public Tower() {
+
+    }
+
+
+    public void merge(GsonTowerInfo towerInfo) {
         this.serverId = towerInfo.id;
         this.lat = towerInfo.lat;
         this.lng = towerInfo.lng;
@@ -78,17 +89,10 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
         this.level = towerInfo.level;
         this.health = towerInfo.health;
         this.maxHealth = towerInfo.maxHealth;
-        this.color = owner.color;
         this.goldGain = towerInfo.goldGain;
         this.updateCost = towerInfo.updateCost;
         this.repairCost = towerInfo.repairCost;
         this.my = towerInfo.my;
-        this.owner = owner._id;
-
-    }
-
-    public Tower() {
-
     }
 
     @Override
@@ -136,4 +140,5 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
                 ", owner=" + owner +
                 '}';
     }
+
 }

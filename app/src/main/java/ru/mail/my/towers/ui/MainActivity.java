@@ -72,9 +72,11 @@ public class MainActivity extends BaseFragmentActivity
         implements OnMapReadyCallback,
                    LocationAppService.LocationChangedEventHandler,
                    GoogleMap.OnCameraMoveListener,
+                   MapObjectsView.MapObjectClickListener,
                    GameService.GameMessageEventHandler,
-                   MapObjectsView.MapObjectClickListener, GameService.MyProfileEventHandler,
-                   GameService.TowersGeoDataChanged {
+                   GameService.MyProfileEventHandler,
+                   GameService.TowersGeoDataChangedEventHandler,
+                   GameService.TowerDeleteEventHandler {
 
     private static final int RC_LOCATION_PERMISSION = 101;
     private static final int RC_ACCESS_STORAGE_PERMISSION = 102;
@@ -194,6 +196,7 @@ public class MainActivity extends BaseFragmentActivity
         game().gameMessageEvent.add(this);
         game().myProfileEvent.add(this);
         game().geoDataChangedEvent.add(this);
+        game().deleteTowerEvent.add(this);
         updateProfileLoop();
 
 
@@ -221,6 +224,7 @@ public class MainActivity extends BaseFragmentActivity
         game().gameMessageEvent.remove(this);
         game().myProfileEvent.remove(this);
         game().geoDataChangedEvent.remove(this);
+        game().deleteTowerEvent.remove(this);
 
         super.onPause();
     }
@@ -420,7 +424,9 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.attack_tower)
     protected void onAttackTowerClick() {
-        game().attack(selectedTower);
+        if (selectedTower != null) {
+            game().attackTower(selectedTower);
+        }
     }
 
     @OnClick(R.id.tower_owner_info)
@@ -603,5 +609,12 @@ public class MainActivity extends BaseFragmentActivity
     @Override
     public void onTowersGeoDataChanged(MapExtent extent) {
         runOnUiThread(this::onCameraMove);
+    }
+
+    @Override
+    public void onTowerDelete(Tower tower) {
+        if (selectedTower != null && selectedTower._id == tower._id) {
+            onMapSelectionChanged(null);
+        }
     }
 }

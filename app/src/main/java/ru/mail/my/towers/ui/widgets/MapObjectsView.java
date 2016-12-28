@@ -133,7 +133,11 @@ public class MapObjectsView extends View implements TowersMap.TowersMapReadyToDr
                 }
             }
             tower = data().towers.selectById(tid);
-            towersMap.setSelection(tower._id, tower.network);
+            if (tower != null) {
+                towersMap.setSelection(tower._id, tower.network);
+            } else {
+                towersMap.setSelection(0, 0);
+            }
         } else {
             tower = null;
 

@@ -117,13 +117,6 @@ public class TowersMap implements TowersDataLoader.TowersDataLoaderCallback, IMa
 
         dataLoader.requestData(mapExtent);
         buildDataExecutor.execute(false);
-
-        double d2 = Utils.distance2(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
-        double d = Utils.distance(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
-        Log.d("TEST", "d0 = " + d2 +
-                ", d1 = " + d +
-                ", err = " + (d - d2) +
-                ", err = " + (d - d2) / d);
     }
 
     public void onDraw(Canvas canvas) {

@@ -3,16 +3,17 @@ package ru.mail.my.towers.diagnostics;
 import android.location.Location;
 import android.util.Log;
 
-import java.util.Map;
-
 import okhttp3.logging.HttpLoggingInterceptor;
 import ru.mail.my.towers.BuildConfig;
+import ru.mail.my.towers.model.NotificationType;
 
+@SuppressWarnings("WeakerAccess")
 public class Logger {
     public static final boolean LOG_ERRORS = true;
     public static final boolean LOG_VERBOSE = BuildConfig.DEBUG;
     public static final boolean LOG_DEBUG = BuildConfig.DEBUG;
     public static final boolean LOG_DB = false;
+    public static final boolean LOG_NOTIFICATIONS = true;
 
 
     private static final boolean LOG_LOCATION = LOG_DEBUG;
@@ -21,7 +22,7 @@ public class Logger {
     public static final String TAG_LOCATION = "location";
     public static final String TAG_API = "game_api";
     public static final String TAG_DB = "DATABASE";
-
+    public static final String TAG_NOTIFICATIONS = "notifications";
 
 
     public static void traceUi(Object caller) {
@@ -133,6 +134,12 @@ public class Logger {
         } else {
             return message -> {
             };
+        }
+    }
+
+    public static void logNotification(String message, NotificationType type) {
+        if (LOG_NOTIFICATIONS) {
+            logV(TAG_NOTIFICATIONS, "%s %s", type, message);
         }
     }
 }
