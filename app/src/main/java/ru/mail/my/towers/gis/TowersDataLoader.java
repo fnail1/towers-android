@@ -23,15 +23,15 @@ public class TowersDataLoader {
     }
 
     private void loadSync() {
-        MapExtent mapExtent = extent;
-        try {
-            if (!game().loadTowers(mapExtent))
-                return;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        callback.onTowersDataLoaded(mapExtent);
+//        MapExtent mapExtent = extent;
+//        try {
+//            if (!game().loadTowers(mapExtent))
+//                return;
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        callback.onTowersDataLoaded(mapExtent);
     }
 
     public interface TowersDataLoaderCallback {

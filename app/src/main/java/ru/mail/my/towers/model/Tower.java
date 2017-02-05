@@ -69,6 +69,11 @@ public class Tower extends AbsRow implements IDbSerializationHandlers{
 
     public long owner;
 
+    public double extLatMin;
+    public double extLngMin;
+    public double extLatMax;
+    public double extLngMax;
+
     public Tower(GsonTowerInfo towerInfo, UserInfo owner) {
         merge(towerInfo);
         this.color = owner.color;

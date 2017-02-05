@@ -34,4 +34,11 @@ public abstract class CursorWrapper<T> implements Closeable {
 
     protected abstract T get(Cursor cursor);
 
+    public T readSingleAndClose(){
+        try {
+            return moveToNext() ? get() : null;
+        } finally {
+            close();
+        }
+    }
 }

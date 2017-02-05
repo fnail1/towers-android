@@ -119,4 +119,5 @@ public class NetworksTable extends SQLiteCommands<TowerNetwork> {
             wrapper.close();
         }
     }
+
 }

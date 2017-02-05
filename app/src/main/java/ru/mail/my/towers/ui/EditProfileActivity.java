@@ -1,12 +1,10 @@
 package ru.mail.my.towers.ui;
 
 import android.app.ProgressDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
-import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -14,20 +12,12 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.OnEditorAction;
-import retrofit2.Response;
 import ru.mail.my.towers.R;
-import ru.mail.my.towers.api.model.GsonPutProfileResponse;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
-import ru.mail.my.towers.toolkit.ThreadPool;
 
-import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.game;
 
 public class EditProfileActivity extends AppCompatActivity implements GameService.MyProfileEventHandler, GameService.UpdateMyProfileCallback {

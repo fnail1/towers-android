@@ -3,46 +3,37 @@ package ru.mail.my.towers.service;
 import android.location.Location;
 import android.util.LongSparseArray;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.maps.android.SphericalUtil;
+
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import retrofit2.Response;
-import ru.mail.my.towers.api.TowersGameApi;
-import ru.mail.my.towers.api.model.GsonAttackResponse;
 import ru.mail.my.towers.api.model.GsonBattleInfo;
-import ru.mail.my.towers.api.model.GsonCreateTowerResponse;
-import ru.mail.my.towers.api.model.GsonDestroyTowerResponse;
-import ru.mail.my.towers.api.model.GsonGameInfoResponse;
-import ru.mail.my.towers.api.model.GsonGetProfileResponse;
-import ru.mail.my.towers.api.model.GsonMyTowersResponse;
-import ru.mail.my.towers.api.model.GsonPutProfileResponse;
-import ru.mail.my.towers.api.model.GsonButtleResultsResponse;
 import ru.mail.my.towers.api.model.GsonTowerInfo;
-import ru.mail.my.towers.api.model.GsonTowersInfoResponse;
-import ru.mail.my.towers.api.model.GsonTowersNetworkInfo;
-import ru.mail.my.towers.api.model.GsonUpdateTowerResponse;
-import ru.mail.my.towers.api.model.GsonUserInfo;
 import ru.mail.my.towers.api.model.GsonUserProfile;
+import ru.mail.my.towers.data.CursorWrapper;
+import ru.mail.my.towers.data.DbUtils;
 import ru.mail.my.towers.diagnostics.Logger;
+import ru.mail.my.towers.gis.GisUtils;
 import ru.mail.my.towers.gis.MapExtent;
 import ru.mail.my.towers.model.Notification;
 import ru.mail.my.towers.model.NotificationType;
 import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.TowerNetwork;
-import ru.mail.my.towers.model.TowerUpdateAction;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
-import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.data;
-import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.prefs;
 
 public class GameService {
+    public static final int BASE_GOLD_GAIN = 10;
+    public static final int BASE_TOWER_HEALTH = 100;
+    public static final int BASE_TOWER_RADIUS = 10;
     public final UserInfo me;
 
     public final ObservableEvent<MyProfileEventHandler, GameService, UserInfo> myProfileEvent = new ObservableEvent<MyProfileEventHandler, GameService, UserInfo>(this) {
@@ -79,6 +70,20 @@ public class GameService {
         UserInfo userInfo = data.users.select(preferences.getMeDbId());
         if (userInfo == null) {
             userInfo = new UserInfo();
+            userInfo.health.current = 100;
+            userInfo.health.regeneration = 1;
+            userInfo.health.max = 100;
+            userInfo.towersCount = 0;
+            userInfo.gold.frequency = 30;
+            userInfo.gold.current = 1000;
+            userInfo.gold.gain = 1;
+            userInfo.area = 0;
+            userInfo.color = 0xffff0000;
+            userInfo.createCost = 10;
+            userInfo.currentLevel = 1;
+            userInfo.exp = 0;
+            userInfo.serverId = 100500;
+
         }
         me = userInfo;
     }
@@ -88,39 +93,7 @@ public class GameService {
     }
 
     private void startSync() {
-        try {
-            Response<GsonGameInfoResponse> gameInfoResponse = api().getGameInfo().execute();
-            if (gameInfoResponse.code() == HttpURLConnection.HTTP_OK) {
-                GsonGameInfoResponse gameInfo = gameInfoResponse.body();
-                if (gameInfo.success) {
-                    updateMyProfile(gameInfo.info);
-                }
-            }
 
-            Response<GsonGetProfileResponse> profileResponse = api().getMyProfile().execute();
-            if (profileResponse.code() == HttpURLConnection.HTTP_OK) {
-                GsonGetProfileResponse body = profileResponse.body();
-                if (body.success) {
-                    updateMyProfile(body.profile);
-                }
-            }
-
-            loadMyTowers(me);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void updateMyProfile(GsonUserInfo data) {
-        synchronized (me) {
-            me.merge(data);
-        }
-
-        if (me._id > 0) {
-            data().users.save(me);
-            myProfileEvent.fire(me);
-        }
     }
 
     public void updateMyProfile(GsonUserProfile data) {
@@ -133,30 +106,13 @@ public class GameService {
     }
 
     public void updateMyProfile(String newName, int newColor, UpdateMyProfileCallback callback) {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
-            try {
-                StringBuilder sb = new StringBuilder("000000");
-                String hexColor = Integer.toHexString(newColor).substring(0, 6);
-                sb.replace(6 - hexColor.length(), 6, hexColor);
-                hexColor = sb.toString();
-
-                Response<GsonPutProfileResponse> response = api().setMyProfile(newName, hexColor).execute();
-                if (HttpURLConnection.HTTP_OK != response.code()) {
-                    callback.onUpdateMyProfileServerError(response.code());
-                    return;
-                }
-                GsonPutProfileResponse data = response.body();
-                if (!data.success) {
-                    callback.onUpdateMyProfileCommonServerError();
-                    return;
-                }
-                updateMyProfile(data.profile);
-                callback.onUpdateMyProfileComplete();
-            } catch (IOException e) {
-                callback.onUpdateMyProfileNetworkError();
-            }
-        });
-
+        me.color = newColor;
+        me.name = newName;
+        if (me.serverId != 0) {
+            data().users.save(me);
+            myProfileEvent.fire(me);
+        }
+        callback.onUpdateMyProfileComplete();
     }
 
     public void onGameNotification(String message, NotificationType type) {
@@ -170,204 +126,154 @@ public class GameService {
         gameMessageEvent.fire(raw);
     }
 
-
-    public boolean loadTowers(MapExtent mapExtent) throws IOException {
-        if (towersUnderAttack.size() > 0)
-            return false;
-
-        int generation = prefs().getTowersGeneration() + 1;
-        Response<GsonTowersInfoResponse> response = api().getTowersInfo(mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2).execute();
-        if (response.code() != HttpURLConnection.HTTP_OK)
-            return false;
-
-        GsonTowersInfoResponse towersInfo = response.body();
-        if (!towersInfo.success)
-            return false;
-
-        for (GsonTowersInfoResponse.GsonTowersCollection networkInfo : towersInfo.towersNew) {
-            GsonTowerInfo[] towers = networkInfo.towers;
-            if (towers.length == 0)
-                continue;
-
-            updateTowersNetwork(towers, generation);
-        }
-
-        prefs().setTowersGeneration(generation);
-        data().towers.deleteDeprecated(generation, mapExtent.lat1, mapExtent.lng1, mapExtent.lat2, mapExtent.lng2);
-        return true;
-    }
-
-    private void loadMyTowers(UserInfo me) throws IOException {
-        int generation = prefs().getMyTowersGeneration() + 1;
-
-        Response<GsonMyTowersResponse> myTowersResponse = api().getMyTowers().execute();
-        if (myTowersResponse.isSuccessful()) {
-            GsonMyTowersResponse myTowers = myTowersResponse.body();
-            if (myTowers.success) {
-                int totalCount = 0;
-                for (GsonTowersNetworkInfo towersNet : myTowers.towersNets) {
-                    GsonTowerInfo[] towers = towersNet.inside;
-                    if (towers.length == 0)
-                        continue;
-                    totalCount += towers.length;
-
-                    updateTowersNetwork(towers, generation);
-                }
-                me.towersCount = totalCount;
-                data().users.save(me);
-                prefs().setMyTowersGeneration(generation);
-                data().towers.deleteDeprecated(generation, true);
-            }
-        }
-    }
-
-
-    public void updateTowersNetwork(GsonTowerInfo[] towers, int generation) {
-        TowerNetwork network = null;
-        for (GsonTowerInfo towerInfo : towers) {
-            Tower tower = data().towers.selectByServerId(towerInfo.id);
-            if (tower != null) {
-                network = data().networks.selectById(tower.network);
-                break;
-            }
-        }
-
-        if (network == null) {
-            network = new TowerNetwork();
-            data().networks.save(network, generation);
-        }
-
-        double lat = 0, lng = 0;
-        float level = 0;
-        int health = 0;
-        int maxHealth = 0;
-
-
-        for (GsonTowerInfo towerInfo : towers) {
-            lat += towerInfo.lat;
-            lng += towerInfo.lng;
-            level += towerInfo.level;
-            health += towerInfo.health;
-            maxHealth += towerInfo.maxHealth;
-            network.color = UserInfo.parseColor(towerInfo.user.color);
-        }
-
-        double centerLat = lat / towers.length;
-        double centerLng = lng / towers.length;
-        double dmin = Double.MAX_VALUE;
-        GsonTowerInfo closest = null;
-        for (GsonTowerInfo towerInfo : towers) {
-            double dlat = towerInfo.lat - centerLat;
-            double dlng = towerInfo.lng - centerLng;
-            double d = dlat * dlat + dlng * dlng;
-            if (d < dmin) {
-                dmin = d;
-                closest = towerInfo;
-            }
-        }
-        //noinspection ConstantConditions
-        network.lat = closest.lat;
-        network.lng = closest.lng;
-        network.level = level / towers.length;
-        network.count = towers.length;
-        network.health = health;
-        network.maxHealth = maxHealth;
-        network.my = towers[0].user.id == game().me.serverId;
-        data().networks.save(network, generation);
-
-        for (GsonTowerInfo towerInfo : towers) {
-            UserInfo owner = new UserInfo();
-            owner.merge(towerInfo.user);
-            data().users.save(owner);
-
-            Tower tower = new Tower(towerInfo, owner);
-            tower.network = network._id;
-            data().towers.save(tower, generation);
-        }
-    }
-
     public void createTower(Location location, String name) {
         createTower(location.getLatitude(), location.getLongitude(), name);
     }
 
     public void createTower(double latitude, double longitude, String name) {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
+        ThreadPool.DB.execute(() -> {
+            me.towersCount++;
+
+            Tower tower = new Tower();
+            tower.lng = longitude;
+            tower.lat = latitude;
+            tower.my = true;
+            tower.level = me.currentLevel;
+            fillWithDefaults(tower);
+            tower.health = 75;
+            tower.title = name;
+            tower.owner = me._id;
+
+            LatLng p0 = new LatLng(latitude, longitude);
+            LatLng[] points = new LatLng[4];
+            points[0] = SphericalUtil.computeOffset(p0, tower.radius, 0);
+            points[1] = SphericalUtil.computeOffset(p0, tower.radius, 90);
+            points[2] = SphericalUtil.computeOffset(p0, tower.radius, 180);
+            points[3] = SphericalUtil.computeOffset(p0, tower.radius, 270);
+            MapExtent extent = new MapExtent(points);
+            tower.extLatMin = extent.lat1;
+            tower.extLngMin = extent.lng1;
+            tower.extLatMax = extent.lat2;
+            tower.extLngMax = extent.lng2;
+
+            TowerNetwork network;
+            CursorWrapper<Tower> cursor = data().towers.select(tower.extLatMin, tower.extLngMin, tower.extLatMax, tower.extLngMax);
             try {
-                Response<GsonCreateTowerResponse> response = api().createTower(latitude, longitude, name).execute();
-                if (response.code() != HttpURLConnection.HTTP_OK) {
-                    onGameNotification("Башня не постоена. Сервер вернул " + response.code(), NotificationType.ERROR);
-                } else {
-                    GsonCreateTowerResponse body = response.body();
-                    if (!body.success) {
-                        onGameNotification("Башня не построена: " + body.error.message, NotificationType.ERROR);
-                    } else {
-                        me.towersCount++;
-                        me.merge(body.tower.user);
+                if (cursor.moveToFirst()) {
+                    long netId = -1;
+                    LongSparseArray<Boolean> toUnion = null;
+                    do {
+                        Tower t = cursor.get();
+                        if (!t.my) {
+                            onGameNotification("Здесь строить нельзя", NotificationType.ERROR);
+                            return;
+                        }
 
-                        Tower tower = new Tower(body.tower, me);
-                        data().towers.save(tower, prefs().getMyTowersGeneration());
-                        updateMyProfile(body.userInfo);
-                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-
-                        onGameNotification("Башня \'" + tower.title + "\' построена", NotificationType.SUCCESS);
+                        LatLng p1 = new LatLng(t.lat, t.lng);
+                        if (SphericalUtil.computeDistanceBetween(p0, p1) < (tower.radius + t.radius)) {
+                            if (netId < 0) {
+                                netId = t.network;
+                            } else if (t.network != netId) {
+                                if (toUnion == null)
+                                    toUnion = new LongSparseArray<>(4);
+                                toUnion.put(t.network, Boolean.TRUE);
+                            }
+                        }
+                    } while (cursor.moveToNext());
+                    if (toUnion != null) {
+                        for (int i = 0; i < toUnion.size(); i++) {
+                            data().towers.unionNetworks(netId, toUnion.keyAt(i));
+                        }
+                        data().networks.deleteEmpty();
                     }
+                    network = data().networks.selectById(netId);
+                } else {
+                    network = new TowerNetwork();
+                    network.maxHealth = tower.maxHealth;
+                    network.level = tower.level;
+                    network.my = true;
+                    network.area = (float) (Math.PI * tower.radius * tower.radius);
                 }
-            } catch (IOException e) {
-                onGameNotification("Не удалось построить башню из-за сетевой ошибки.", NotificationType.ERROR);
+            } finally {
+                cursor.close();
             }
+
+            cursor = data().towers.selectByNetwork(network._id);
+
+            ArrayList<Tower> towers;
+            try {
+                towers = DbUtils.readToList(cursor);
+            } finally {
+                cursor.close();
+            }
+
+            towers.add(tower);
+            network.area = GisUtils.calcArea(towers);
+            double sumLat = 0, sumLng = 0;
+            int sumLvl = 0, sumHP = 0, sumMaxHP = 0;
+            for (Tower t : towers) {
+                sumLat += t.lat;
+                sumLng += t.lng;
+                sumLvl += t.level;
+                sumHP += t.health;
+                sumMaxHP += t.maxHealth;
+            }
+            network.color = me.color;
+
+            double centerLat = sumLat / towers.size();
+            double centerLng = sumLng / towers.size();
+            double dmin = Double.MAX_VALUE;
+            Tower closest = null;
+            for (Tower t : towers) {
+                double dlat = t.lat - centerLat;
+                double dlng = t.lng - centerLng;
+                double d = dlat * dlat + dlng * dlng;
+                if (d < dmin) {
+                    dmin = d;
+                    closest = t;
+                }
+            }
+
+            data().networks.save(network);
+            tower.network = network._id;
+            data().towers.save(tower, prefs().getMyTowersGeneration());
+            geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+
+            onGameNotification("Башня \'" + tower.title + "\' построена", NotificationType.SUCCESS);
         });
+    }
+
+    public void fillWithDefaults(Tower tower) {
+        tower.goldGain = BASE_GOLD_GAIN;
+        tower.maxHealth = BASE_TOWER_HEALTH;
+        tower.radius = BASE_TOWER_RADIUS * tower.level;
     }
 
     public void destroyTower(Tower tower) {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
-            try {
-                Response<GsonDestroyTowerResponse> response = api().destroyTower(tower.serverId, TowerUpdateAction.destroy).execute();
-                if (response.code() != HttpURLConnection.HTTP_OK) {
-                    onGameNotification("Башня устояла. Сервер вернул " + response.code(), NotificationType.ERROR);
-                } else {
-                    GsonDestroyTowerResponse body = response.body();
-                    if (!body.success) {
-                        onGameNotification("Башня устояла: " + body.error.message, NotificationType.ERROR);
-                    } else {
-                        me.towersCount--;
+        me.towersCount--;
 
-                        data().towers.delete(tower._id);
-                        deleteTowerEvent.fire(tower);
-                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-                        onGameNotification("Башня \'" + tower.title + "\' удалена", NotificationType.SUCCESS);
-
-                        startSync();
-                    }
-                }
-            } catch (IOException e) {
-                onGameNotification("Не удалось удалить башню из-за сетевой ошибки.", NotificationType.ERROR);
-            }
-        });
+        TowerNetwork network = data().networks.selectById(tower.network);
+        network.area = GisUtils.substractTowerArea(network, tower);
+        data().towers.delete(tower._id);
+        deleteTowerEvent.fire(tower);
+        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+        onGameNotification("Башня \'" + tower.title + "\' удалена", NotificationType.SUCCESS);
     }
 
     public void upgradeTower(Tower tower) {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
-            try {
-                Response<GsonUpdateTowerResponse> response = api().updateTower(tower.serverId, TowerUpdateAction.upgrade).execute();
-                if (response.code() != HttpURLConnection.HTTP_OK) {
-                    onGameNotification("Ошибка. Сервер вернул " + response.code(), NotificationType.ERROR);
-                } else {
-                    GsonUpdateTowerResponse body = response.body();
-                    if (!body.success) {
-                        onGameNotification("Ошибка: " + body.error.message, NotificationType.ERROR);
-                    } else {
-                        tower.merge(body.tower);
-                        data().towers.save(tower);
-                        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+        if (tower.level == me.currentLevel)
+            return;
+        tower.level++;
+        fillWithDefaults(tower);
+        data().towers.save(tower);
 
-                        updateMyProfile(body.userInfo);
-                        onGameNotification("Башня \'" + tower.title + "\' обновлена", NotificationType.SUCCESS);
-                    }
-                }
-            } catch (IOException e) {
-                onGameNotification("Не удалось прокачать башню из-за сетевой ошибки.", NotificationType.ERROR);
-            }
-        });
+        TowerNetwork network = data().networks.selectById(tower.network);
+        network.area = GisUtils.calcArea(network);
+        data().networks.save(network);
+
+        geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
+
+        onGameNotification("Башня \'" + tower.title + "\' обновлена", NotificationType.SUCCESS);
     }
 
 
@@ -384,31 +290,18 @@ public class GameService {
             hitTower(tower, battleInfo);
             return;
         }
+        battleInfo = new GsonBattleInfo();
+        battleInfo.towerAttack = 5 * tower.level;
+        battleInfo.playerAttack = me.currentLevel;
+        battleInfo.towerAttackFrequency = 3;
+        battleInfo.towerHealth = tower.health;
 
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
-            try {
-                Response<GsonAttackResponse> response = api().attack(tower.serverId, TowersGameApi.START).execute();
-                if (response.code() != HttpURLConnection.HTTP_OK) {
-                    onGameNotification("Атака захлебнулась из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
-                    return;
-                }
-
-                GsonAttackResponse body = response.body();
-                if (!body.success) {
-                    onGameNotification("Атака захлебнулась: " + body.error, NotificationType.ERROR);
-                    return;
-                }
-
-                synchronized (towersUnderAttack) {
-                    towersUnderAttack.put(tower._id, body.battleInfo);
-                }
-                hitTower(tower, body.battleInfo);
-                BattleTowerAttackTask battleTask = new BattleTowerAttackTask(tower);
-                battleTask.run();
-            } catch (IOException e) {
-                onGameNotification("Атака захлебнулась из-за сетевой ошибки", NotificationType.ERROR);
-            }
-        });
+        synchronized (towersUnderAttack) {
+            towersUnderAttack.put(tower._id, battleInfo);
+        }
+        hitTower(tower, battleInfo);
+        BattleTowerAttackTask battleTask = new BattleTowerAttackTask(tower);
+        battleTask.run();
 
     }
 
@@ -432,22 +325,6 @@ public class GameService {
             data().towers.delete(tower._id);
             deleteTowerEvent.fire(tower);
             geoDataChangedEvent.fire(new MapExtent(tower.lat, tower.lng));
-
-            ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.MEDIUM).execute(() -> {
-                try {
-                    Response<GsonButtleResultsResponse> response = api().win(tower.serverId, TowersGameApi.STOP, true).execute();
-                    if (response.code() != HttpURLConnection.HTTP_OK) {
-                        onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.code(), NotificationType.ERROR);
-                    } else if (!response.body().success) {
-                        onGameNotification("Похоже, мы победили, но результат неизвестен из-за ошибки сервера: " + response.body().error.message, NotificationType.ERROR);
-                    } else {
-                        onGameNotification("Мы победили", NotificationType.GOOD_NEWS);
-                        updateMyProfile(response.body().info);
-                    }
-                } catch (IOException e) {
-                    onGameNotification("Похоже, мы победили, но результат неизвестен из-за сетевой ошибки", NotificationType.ERROR);
-                }
-            });
         } else {
             tower.health -= battleInfo.playerAttack;
             onGameNotification("Атака наносит башне урон " + battleInfo.playerAttack + " (" + tower.health + ")", NotificationType.INFO);

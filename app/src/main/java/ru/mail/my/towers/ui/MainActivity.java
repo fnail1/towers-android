@@ -37,8 +37,6 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.IOException;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
@@ -53,13 +51,11 @@ import ru.mail.my.towers.model.Tower;
 import ru.mail.my.towers.model.UserInfo;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
-import ru.mail.my.towers.toolkit.ThreadPool;
 import ru.mail.my.towers.ui.mytowers.MyTowersActivity;
 import ru.mail.my.towers.ui.notifications.NotificationsActivity;
 import ru.mail.my.towers.ui.widgets.MapObjectsView;
 import ru.mail.my.towers.utils.Utils;
 
-import static ru.mail.my.towers.TowersApp.api;
 import static ru.mail.my.towers.TowersApp.app;
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.data;
@@ -180,12 +176,12 @@ public class MainActivity extends BaseFragmentActivity
 
         toastsEngine = new CustomToastsEngine(mapControls);
 
-        if (prefs().getAccessToken() == null) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-        } else if (TextUtils.isEmpty(game().me.name) || game().me.color == UserInfo.INVALID_COLOR) {
-            startActivity(new Intent(this, EditProfileActivity.class));
-        }
+//        if (prefs().getAccessToken() == null) {
+//            startActivity(new Intent(this, LoginActivity.class));
+//            finish();
+//        } else if (TextUtils.isEmpty(game().me.name) || game().me.color == UserInfo.INVALID_COLOR) {
+//            startActivity(new Intent(this, EditProfileActivity.class));
+//        }
 
         checkOrRequestPermissions(RC_LOCATION_PERMISSION, Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -436,17 +432,17 @@ public class MainActivity extends BaseFragmentActivity
 
     @OnClick(R.id.logout)
     protected void onLogoutClick() {
-        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
-            try {
-                api().logout().execute();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            runOnUiThread(() -> {
-                app().onLogout();
-                recreate();
-            });
-        });
+//        ThreadPool.SLOW_EXECUTORS.getExecutor(ThreadPool.Priority.HIGH).execute(() -> {
+//            try {
+//                api().logout().execute();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            runOnUiThread(() -> {
+//                app().onLogout();
+//                recreate();
+//            });
+//        });
     }
 
     @OnClick(R.id.my_towers_info)

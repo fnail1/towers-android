@@ -70,4 +70,5 @@ public class ScreenProjection {
     public float yf(double lat, double lng) {
         return Math.round(a2 * lat + b2 * lng + d2);
     }
+
 }

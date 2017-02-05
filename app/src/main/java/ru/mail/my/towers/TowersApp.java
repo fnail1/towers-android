@@ -16,7 +16,7 @@ public class TowersApp extends Application {
     private LocationAppService locationService;
     private Preferences preferences;
     private AppStateService appStateService;
-    private TowersGameApi api;
+//    private TowersGameApi api;
     private GameService gameService;
     private AppData data;
 
@@ -39,10 +39,10 @@ public class TowersApp extends Application {
     public static AppStateService appState() {
         return instance.appStateService;
     }
-
-    public static TowersGameApi api() {
-        return instance.api;
-    }
+//
+//    public static TowersGameApi api() {
+//        return instance.api;
+//    }
 
     public static GameService game() {
         return instance.gameService;
@@ -56,7 +56,7 @@ public class TowersApp extends Application {
         data = new AppData(this, preferences.getUserId());
         appStateService = new AppStateService(this, preferences);
         locationService = new LocationAppService(this, appStateService);
-        api = TowersGameApi.Builder.createInstance(TowersGameApi.BASE_URL);
+//        api = TowersGameApi.Builder.createInstance(TowersGameApi.BASE_URL);
         gameService = new GameService(preferences, data);
 
         instance = this;

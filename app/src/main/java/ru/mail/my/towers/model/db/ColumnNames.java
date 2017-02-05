@@ -7,6 +7,10 @@ public class ColumnNames {
     public static final String GENERATION = "_generation";
     public static final String LAT = "lat";
     public static final String LNG = "lng";
+    public static final String EXT_LAT_MIN = "extLatMin";
+    public static final String EXT_LNG_MIN = "extLngMin";
+    public static final String EXT_LAT_MAX = "extLatMax";
+    public static final String EXT_LNG_MAX = "extLngMax";
     public static final String IS_MY = "my";
     public static final String NETWORK = "network";
     public static final String TOWER = "tower";

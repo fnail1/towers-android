@@ -84,9 +84,9 @@ public class TowersTable extends SQLiteCommands<Tower> {
     }
 
     private void filterLocation(StringBuilder sb, double lat1, double lng1, double lat2, double lng2) {
-        sb.append(ColumnNames.LAT).append(" between ").append(lat1).append(" and ").append(lat2).append(" ");
+        sb.append(" not (").append(ColumnNames.EXT_LAT_MAX).append(" < ").append(lat1).append(" or ").append(ColumnNames.EXT_LAT_MIN).append(" > ").append(lat2).append(") ");
         sb.append(" and ");
-        sb.append(ColumnNames.LNG).append(" between ").append(lng1).append(" and ").append(lng2).append(" ");
+        sb.append(" not (").append(ColumnNames.EXT_LNG_MAX).append(" < ").append(lng1).append(" or ").append(ColumnNames.EXT_LNG_MIN).append(" > ").append(lng2).append(") ");
     }
 
     public CursorWrapper<Tower> select(double lat1, double lng1, double lat2, double lng2) {
@@ -137,4 +137,26 @@ public class TowersTable extends SQLiteCommands<Tower> {
         return DbUtils.count(db, "select count (*) from " + AppData.TABLE_TOWERS + " where " + ColumnNames.IS_MY + " = 1", (String[]) null);
     }
 
+    public void unionNetworks(long dst, long src) {
+        String sql = "update " + AppData.TABLE_TOWERS + "\n" +
+                "set " + ColumnNames.NETWORK + " = ? \n" +
+                "where " + ColumnNames.NETWORK + " = ?\n";
+        String[] args = {String.valueOf(dst), String.valueOf(src)};
+
+        db.execSQL(sql, args);
+    }
+
+    public CursorWrapper<Tower> selectByNetwork(long netId) {
+        String sql = "select * \n" +
+                "from " + AppData.TABLE_TOWERS + "\n" +
+                "where " + ColumnNames.NETWORK + " = ?";
+        return new CursorWrapper<Tower>(db.rawQuery(sql, new String[]{String.valueOf(netId)})) {
+            Field[] towersCursorMap = DbUtils.mapCursorForRowType(cursor, Tower.class, null);
+
+            @Override
+            public Tower get(Cursor cursor) {
+                return DbUtils.readObjectFromCursor(cursor, new Tower(), towersCursorMap);
+            }
+        };
+    }
 }
