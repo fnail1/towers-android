@@ -28,6 +28,7 @@ import ru.mail.my.towers.toolkit.events.ObservableEvent;
 
 import static ru.mail.my.towers.TowersApp.appState;
 import static ru.mail.my.towers.TowersApp.data;
+import static ru.mail.my.towers.TowersApp.game;
 import static ru.mail.my.towers.TowersApp.prefs;
 
 public class GameService {
@@ -66,7 +67,7 @@ public class GameService {
 
     private final LongSparseArray<GsonBattleInfo> towersUnderAttack = new LongSparseArray<>();
 
-    public GameService(Preferences preferences, AppData data) {
+    public GameService(Preferences preferences, AppData data, AppStateService appStateService) {
         UserInfo userInfo = data.users.select(preferences.getMeDbId());
         if (userInfo == null) {
             userInfo = new UserInfo();
@@ -78,12 +79,13 @@ public class GameService {
             userInfo.gold.current = 1000;
             userInfo.gold.gain = 1;
             userInfo.area = 0;
-            userInfo.color = 0xffff0000;
+            userInfo.color = 0xff3217d0;
             userInfo.createCost = 10;
             userInfo.currentLevel = 1;
             userInfo.exp = 0;
             userInfo.serverId = 100500;
-
+            userInfo.name = "Юзер";
+            userInfo.syncTs = appStateService.getServerTime();
         }
         me = userInfo;
     }
@@ -134,17 +136,18 @@ public class GameService {
         ThreadPool.DB.execute(() -> {
             me.towersCount++;
 
+            LatLng p0 = new LatLng(latitude, longitude);
             Tower tower = new Tower();
-            tower.lng = longitude;
-            tower.lat = latitude;
             tower.my = true;
             tower.level = me.currentLevel;
             fillWithDefaults(tower);
+            tower.color = me.color;
             tower.health = 75;
             tower.title = name;
             tower.owner = me._id;
+            tower.lng = longitude;
+            tower.lat = latitude;
 
-            LatLng p0 = new LatLng(latitude, longitude);
             LatLng[] points = new LatLng[4];
             points[0] = SphericalUtil.computeOffset(p0, tower.radius, 0);
             points[1] = SphericalUtil.computeOffset(p0, tower.radius, 90);
@@ -156,51 +159,15 @@ public class GameService {
             tower.extLatMax = extent.lat2;
             tower.extLngMax = extent.lng2;
 
-            TowerNetwork network;
-            CursorWrapper<Tower> cursor = data().towers.select(tower.extLatMin, tower.extLngMin, tower.extLatMax, tower.extLngMax);
-            try {
-                if (cursor.moveToFirst()) {
-                    long netId = -1;
-                    LongSparseArray<Boolean> toUnion = null;
-                    do {
-                        Tower t = cursor.get();
-                        if (!t.my) {
-                            onGameNotification("Здесь строить нельзя", NotificationType.ERROR);
-                            return;
-                        }
+            TowerNetwork network = selectNetworkForTower(p0, tower);
 
-                        LatLng p1 = new LatLng(t.lat, t.lng);
-                        if (SphericalUtil.computeDistanceBetween(p0, p1) < (tower.radius + t.radius)) {
-                            if (netId < 0) {
-                                netId = t.network;
-                            } else if (t.network != netId) {
-                                if (toUnion == null)
-                                    toUnion = new LongSparseArray<>(4);
-                                toUnion.put(t.network, Boolean.TRUE);
-                            }
-                        }
-                    } while (cursor.moveToNext());
-                    if (toUnion != null) {
-                        for (int i = 0; i < toUnion.size(); i++) {
-                            data().towers.unionNetworks(netId, toUnion.keyAt(i));
-                        }
-                        data().networks.deleteEmpty();
-                    }
-                    network = data().networks.selectById(netId);
-                } else {
-                    network = new TowerNetwork();
-                    network.maxHealth = tower.maxHealth;
-                    network.level = tower.level;
-                    network.my = true;
-                    network.area = (float) (Math.PI * tower.radius * tower.radius);
-                }
-            } finally {
-                cursor.close();
+            if (network == null) {
+                onGameNotification("Здесь строить нельзя", NotificationType.ERROR);
+                return;
             }
 
-            cursor = data().towers.selectByNetwork(network._id);
-
             ArrayList<Tower> towers;
+            CursorWrapper<Tower> cursor = data().towers.selectByNetwork(network._id);
             try {
                 towers = DbUtils.readToList(cursor);
             } finally {
@@ -208,7 +175,6 @@ public class GameService {
             }
 
             towers.add(tower);
-            network.area = GisUtils.calcArea(towers);
             double sumLat = 0, sumLng = 0;
             int sumLvl = 0, sumHP = 0, sumMaxHP = 0;
             for (Tower t : towers) {
@@ -218,7 +184,6 @@ public class GameService {
                 sumHP += t.health;
                 sumMaxHP += t.maxHealth;
             }
-            network.color = me.color;
 
             double centerLat = sumLat / towers.size();
             double centerLng = sumLng / towers.size();
@@ -234,6 +199,16 @@ public class GameService {
                 }
             }
 
+            network.area = GisUtils.calcArea(towers);
+            network.color = me.color;
+            network.lat = closest.lat;
+            network.lng = closest.lng;
+            network.level = sumLvl / towers.size();
+            network.count = towers.size();
+            network.health = sumHP;
+            network.maxHealth = sumMaxHP;
+            network.my = true;
+
             data().networks.save(network);
             tower.network = network._id;
             data().towers.save(tower, prefs().getMyTowersGeneration());
@@ -241,6 +216,48 @@ public class GameService {
 
             onGameNotification("Башня \'" + tower.title + "\' построена", NotificationType.SUCCESS);
         });
+    }
+
+    private TowerNetwork selectNetworkForTower(LatLng p0, Tower tower) {
+        CursorWrapper<Tower> cursor;
+        TowerNetwork network;
+        cursor = data().towers.select(tower.extLatMin, tower.extLngMin, tower.extLatMax, tower.extLngMax);
+        try {
+            if (cursor.moveToFirst()) {
+                long netId = -1;
+                LongSparseArray<Boolean> toUnion = null;
+                do {
+                    Tower t = cursor.get();
+                    if (!t.my) {
+                        network = null;
+                        break;
+                    }
+
+                    LatLng p1 = new LatLng(t.lat, t.lng);
+                    if (SphericalUtil.computeDistanceBetween(p0, p1) < (tower.radius + t.radius)) {
+                        if (netId < 0) {
+                            netId = t.network;
+                        } else if (t.network != netId) {
+                            if (toUnion == null)
+                                toUnion = new LongSparseArray<>(4);
+                            toUnion.put(t.network, Boolean.TRUE);
+                        }
+                    }
+                } while (cursor.moveToNext());
+                if (toUnion != null) {
+                    for (int i = 0; i < toUnion.size(); i++) {
+                        data().towers.unionNetworks(netId, toUnion.keyAt(i));
+                    }
+                    data().networks.deleteEmpty();
+                }
+                network = data().networks.selectById(netId);
+            } else {
+                network = new TowerNetwork();
+            }
+        } finally {
+            cursor.close();
+        }
+        return network;
     }
 
     public void fillWithDefaults(Tower tower) {

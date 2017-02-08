@@ -2,13 +2,11 @@ package ru.mail.my.towers;
 
 import android.app.Application;
 
-import ru.mail.my.towers.api.TowersGameApi;
 import ru.mail.my.towers.model.db.AppData;
 import ru.mail.my.towers.service.AppStateService;
 import ru.mail.my.towers.service.GameService;
 import ru.mail.my.towers.service.LocationAppService;
 import ru.mail.my.towers.service.Preferences;
-import ru.mail.my.towers.toolkit.ThreadPool;
 
 public class TowersApp extends Application {
 
@@ -57,7 +55,7 @@ public class TowersApp extends Application {
         appStateService = new AppStateService(this, preferences);
         locationService = new LocationAppService(this, appStateService);
 //        api = TowersGameApi.Builder.createInstance(TowersGameApi.BASE_URL);
-        gameService = new GameService(preferences, data);
+        gameService = new GameService(preferences, data, appStateService);
 
         instance = this;
 
@@ -67,7 +65,7 @@ public class TowersApp extends Application {
     public void onLogin(String number, String token) {
         preferences.onLogin(this, number, token);
         data = new AppData(this, preferences.getUserId());
-        gameService = new GameService(preferences, data);
+        gameService = new GameService(preferences, data, appStateService);
     }
 
     public void onLogout() {

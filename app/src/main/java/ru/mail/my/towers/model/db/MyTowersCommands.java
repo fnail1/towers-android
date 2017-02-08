@@ -42,17 +42,19 @@ public class MyTowersCommands {
     }
 
     private static class MyTowersCursor extends CursorWrapper<MyTowersListItem> {
-        int networkColumnIndex;
-        int towerColumnIndex;
-        int countColumnIndex;
-        int goldGainColumnIndex;
-        int levelColumnIndex;
-        int healthColumnIndex;
-        int maxHealthColumnIndex;
-        int radiusColumnIndex;
-        int repairCostColumnIndex;
-        int titleColumnIndex;
-        int updateCostColumnIndex;
+        private final int networkColumnIndex;
+        private final int towerColumnIndex;
+        private final int countColumnIndex;
+        private final int areaColumnIndex;
+        private final int goldGainColumnIndex;
+        private final int levelColumnIndex;
+        private final int healthColumnIndex;
+        private final int maxHealthColumnIndex;
+        private final int radiusColumnIndex;
+        private final int repairCostColumnIndex;
+        private final int titleColumnIndex;
+        private final int updateCostColumnIndex;
+
 
 
         public MyTowersCursor(Cursor cursor) {
@@ -60,6 +62,7 @@ public class MyTowersCommands {
             networkColumnIndex = cursor.getColumnIndex(NETWORK);
             towerColumnIndex = cursor.getColumnIndex(TOWER);
             countColumnIndex = cursor.getColumnIndex(COUNT);
+            areaColumnIndex = cursor.getColumnIndex(AREA);
             goldGainColumnIndex = cursor.getColumnIndex(GOLD_GAIN);
             levelColumnIndex = cursor.getColumnIndex(LEVEL);
             healthColumnIndex = cursor.getColumnIndex(HEALTH);
@@ -76,6 +79,7 @@ public class MyTowersCommands {
             item.network = cursor.getLong(networkColumnIndex);
             item.tower = cursor.getLong(towerColumnIndex);
             item.count = cursor.getInt(countColumnIndex);
+            item.area = cursor.getInt(areaColumnIndex);
             item.goldGain = cursor.getInt(goldGainColumnIndex);
             item.level = cursor.getFloat(levelColumnIndex);
             item.health = cursor.getInt(healthColumnIndex);
